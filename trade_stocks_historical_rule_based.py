@@ -32,6 +32,10 @@ data_client = StockHistoricalDataClient(API_KEY, SECRET_KEY)
 data_end_date = datetime(year, 12, 31)
 data_start_date = datetime(year, 1, 1)
 
+# Uncomment for custom dates
+# data_end_date = (datetime.today()+timedelta(days=-10)).replace(hour=16, minute=0, second=0, microsecond=0, tzinfo = est)
+# data_start_date = (data_end_date+timedelta(days=-5)).replace(hour=9, minute=0, second=0, microsecond=0, tzinfo = est)
+
 for stock_symbol in stock_symbols:
     data_bars_params = StockBarsRequest(
                     symbol_or_symbols=stock_symbol,
