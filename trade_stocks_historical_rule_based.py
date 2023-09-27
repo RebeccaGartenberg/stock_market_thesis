@@ -92,6 +92,7 @@ for stock_symbol in stock_symbols:
         colors=['#bcbcbc', '#9fc5e8', '#0b5394', '#93c47d', '#38761d', '#ffd966', '#bf9000'],
         marker=[None, '^', 'v', '^', 'v', '^', 'v'],
         linestyle=['-', 'None', 'None', 'None', 'None', 'None', 'None'],
+        markersize=2,
         file_name=f"{dir_name}/{stock_symbol}_{year}.svg",
         show_plot=False
         )
