@@ -13,7 +13,8 @@ def plot(x_axis: list,
         colors: list[str] = None,
         marker: list[str] = None,
         linestyle: list[str] = None,
-        markersize=None,
+        markersize: int = None,
+        alpha: list[int] = None,
         file_name: str = None,
         show_plot: bool = True):
     # format x axis to dispay time of day in est standard time
@@ -33,7 +34,7 @@ def plot(x_axis: list,
     # superimpose multiple plots
     if isinstance(x_axis, pd.Series):
         for plot_num in range(0,len(y_axis)):
-            plt.plot(y_axis[plot_num], color=colors[plot_num], marker=marker[plot_num], linestyle=linestyle[plot_num], label=legend_labels[plot_num], markersize=markersize)
+            plt.plot(y_axis[plot_num], color=colors[plot_num], marker=marker[plot_num], linestyle=linestyle[plot_num], label=legend_labels[plot_num], markersize=markersize, alpha=alpha[plot_num])
     else:
         for plot_num in range(0,len(y_axis)):
             if isinstance(x_axis, list) and len(x_axis) > 1:

@@ -93,6 +93,7 @@ for stock_symbol in stock_symbols:
         marker=[None, '^', 'v', '^', 'v', '^', 'v'],
         linestyle=['-', 'None', 'None', 'None', 'None', 'None', 'None'],
         markersize=2,
+        alpha=[None, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
         file_name=f"{dir_name}/{stock_symbol}_{year}.svg",
         show_plot=False
         )
