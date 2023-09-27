@@ -32,7 +32,7 @@ def plot(x_axis: list,
     # superimpose multiple plots
     if isinstance(x_axis, pd.Series):
         for plot_num in range(0,len(y_axis)):
-            plt.plot(y_axis[plot_num], color=colors[plot_num], marker=marker[plot_num], linestyle=linestyle[plot_num], label=legend_labels[plot_num])
+            plt.plot(y_axis[plot_num], color=colors[plot_num], marker=marker[plot_num], linestyle=linestyle[plot_num], label=legend_labels[plot_num], markersize=2)
     else:
         for plot_num in range(0,len(y_axis)):
             if isinstance(x_axis, list) and len(x_axis) > 1:

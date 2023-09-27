@@ -22,15 +22,15 @@ dir_name = params.get("rule_based_data_plot_directory")
 stock_symbols = params.get("stock_symbols")
 year = params.get("year")
 
-start_of_trading_day = datetime(2022, 1, 1, 9, 30, 0).time()
-end_of_trading_day = datetime(2022, 1, 1, 16, 0, 0).time()
+start_of_trading_day = datetime(2022, 1, 1, 9, 30, 0).time() # 9:30am EST
+end_of_trading_day = datetime(2022, 1, 1, 16, 0, 0).time() # 4:00pm EST
 est = pytz.timezone('US/Eastern')
 
 data_client = StockHistoricalDataClient(API_KEY, SECRET_KEY)
 
-# Get historical data - from 10 days ago until 5 days ago
-data_end_date = (datetime.today()+timedelta(days=-10)).replace(hour=16, minute=0, second=0, microsecond=0, tzinfo = est)
-data_start_date = (data_end_date+timedelta(days=-5)).replace(hour=9, minute=0, second=0, microsecond=0, tzinfo = est)
+# Get an entire year of data
+data_end_date = datetime(year, 12, 31)
+data_start_date = datetime(year, 1, 1)
 
 for stock_symbol in stock_symbols:
     data_bars_params = StockBarsRequest(
@@ -88,6 +88,6 @@ for stock_symbol in stock_symbols:
         colors=['#bcbcbc', '#9fc5e8', '#0b5394', '#93c47d', '#38761d', '#ffd966', '#bf9000'],
         marker=[None, '^', 'v', '^', 'v', '^', 'v'],
         linestyle=['-', 'None', 'None', 'None', 'None', 'None', 'None'],
-        file_name=f"{dir_name}/{stock_symbol}_{year}.png",
+        file_name=f"{dir_name}/{stock_symbol}_{year}.svg",
         show_plot=False
         )

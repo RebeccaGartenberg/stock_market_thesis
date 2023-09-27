@@ -37,7 +37,7 @@ def month_number_to_name(month_num: int) -> str:
     return months_dict[month_num]
 
 def is_us_holiday(date: datetime) -> bool:
-    return date.date() in holidays.US(years = date.year).keys()
+    return (date.date() or date) in holidays.US(years = date.year).keys()
 
 def get_us_holidays(year: int) -> list[datetime]:
     return [date for date in holidays.US(years = year).keys()]

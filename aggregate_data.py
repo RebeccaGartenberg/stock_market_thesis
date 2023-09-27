@@ -1,4 +1,5 @@
 import pandas as pd
+from dates import is_us_holiday
 
 def get_aggregated_mean(data, grouping, index_names=None):
     aggregated_mean = data.groupby(by=grouping).mean()
@@ -16,4 +17,7 @@ def  merge_data(data, strategy_signal_data, merge_col, right_on, left_on, index)
     return strategy_signal_data
 
 def offset_data_by_business_days(data_to_offset, n):
-    return data_to_offset + pd.offsets.BusinessDay(n=n)
+    offset_date = data_to_offset + pd.offsets.BusinessDay(n=n)
+    while offset_date[offset_date.apply(is_us_holiday)].any():
+        offset_date[offset_date.apply(is_us_holiday)] = offset_date[offset_date.apply(is_us_holiday)] + pd.offsets.BusinessDay(n=1)
+    return offset_date
