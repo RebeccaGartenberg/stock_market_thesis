@@ -1,27 +1,45 @@
 import pandas as pd
 from dates import is_us_holiday
 
-def get_rolling_hourly_mean(hour, aggregated_mean, *args):
-    test = aggregated_mean[aggregated_mean['hour'] == hour].rolling(window=2).mean()
-    test.rename(columns={'close': 'close_hourly_mean'}, inplace=True)
+def get_aggregated_mean_hourly(data, n_days, operation='mean', col='close'):
+    if operation == 'mean':
+        aggregated_data = data.resample('1H').mean()
+        col_name = 'close_hourly_mean'
+    elif operation == 'min':
+        aggregated_data = data.resample('1H').min()
+        col_name = 'lowest_low'
+    elif operation == 'max':
+        aggregated_data = data.resample('1H').max()
+        col_name = 'highest_high'
+    elif operation == 'count':
+        aggregated_data = data.resample('1H').count()
+        col_name = 'count'
 
-    return aggregated_mean.merge(test['close_hourly_mean'], how='left', left_on=[aggregated_mean.index.date, aggregated_mean.index.hour], right_on=[test.index.date, test.index.hour])
+    if col == 'gain':
+        col_name = 'avg_gain'
+    elif col == 'loss':
+        col_name = 'avg_loss'
 
-
-def get_aggregated_mean_hourly(data, n_days):
-    aggregated_mean = data.resample('1H').mean()
-    aggregated_mean['hour'] = aggregated_mean.index.hour
-    aggregated_mean = aggregated_mean[aggregated_mean['close'].notna()]
-    aggregated_mean['close_hourly_mean'] = float("nan")
+    aggregated_data['hour'] = aggregated_data.index.hour
+    aggregated_data = aggregated_data[aggregated_data[col].notna()]
+    aggregated_data[f'{col_name}'] = float("nan")
     for hour in data.index.hour.unique():
         # Filter the aggregated_mean DataFrame for the specific hour
-        hourly_aggregated_mean = aggregated_mean[aggregated_mean['hour'] == hour]
+        hourly_aggregated_data = aggregated_data[aggregated_data['hour'] == hour]
 
         # Calculate the rolling hourly mean for this hour and merge it back to the original DataFrame
-        hourly_rolling_mean = hourly_aggregated_mean['close'].rolling(window=n_days).mean()
-        aggregated_mean['close_hourly_mean'] = aggregated_mean['close_hourly_mean'].combine_first(hourly_rolling_mean)
+        if operation == 'mean':
+            hourly_rolling_data = hourly_aggregated_data[col].rolling(window=n_days).mean()
+        elif operation == 'min':
+            hourly_rolling_data = hourly_aggregated_data[col].rolling(window=n_days).min()
+        elif operation == 'max':
+            hourly_rolling_data = hourly_aggregated_data[col].rolling(window=n_days).max()
+        elif operation == 'count':
+            hourly_rolling_data = hourly_aggregated_data[col].rolling(window=n_days).sum()
 
-    return aggregated_mean
+        aggregated_data[f'{col_name}'] = aggregated_data[f'{col_name}'].combine_first(hourly_rolling_data)
+
+    return aggregated_data
 
 def get_aggregated_mean(data, grouping, n_day_average=1, index_names=None):
     aggregated_mean = data.groupby(by=grouping).mean()

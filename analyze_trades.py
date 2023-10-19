@@ -3,6 +3,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import pytz
 
+def format_trade_signals(data, baseline=False):
+    if baseline:
+        data.drop('timestamp', axis=1, inplace=True)
+        data.reset_index(inplace=True)
+        return data
+
+    return data[data['buy'].notna() | data['sell'].notna()][['buy', 'sell']]
+
 def determine_profits(buy_signal, sell_signal):
     price_differences = sell_signal - buy_signal
     total_profits = price_differences[price_differences.notna()].sum()
