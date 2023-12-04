@@ -18,6 +18,8 @@ import time
 import csv
 import pytz
 from pathlib import Path
+from statistics import mean
+import dataframe_image as dfi
 
 with open('./input.yaml', 'rb') as f:
     params = yaml.safe_load(f.read())
@@ -26,8 +28,8 @@ API_KEY = params.get("account_info").get("api_key")
 SECRET_KEY = params.get("account_info").get("secret_key")
 AV_API_KEY = params.get("alpha_vantage").get("api_key")
 year = params.get("year")
-# file_name = 'profitable_strategies.csv'
-# file_name = 'stock_hourly_strategy_data.csv'
+tables_dir_name = params.get("ml_tables_directory")
+
 file_name = 'stock_strategy_data.csv'
 file_name_2 = 'stock_company_data.csv'
 file_name_3 = 'stock_strategy_data_hourly.csv'
@@ -133,16 +135,6 @@ regression_models = []
 random_forest_models = []
 for i in range(0, Y_train.shape[1]):
     regression_model = LogisticRegression(max_iter=1000)
-
-
-    # need better solution to this problem
-    # if Y_train[strategy_result_col_names[i]].nunique() == 1:
-    #     Y_train = Y_train.drop(columns=strategy_result_col_names[i])
-    #     Y_test = Y_test.drop(columns=strategy_result_col_names[i])
-    #     X_train = np.delete(X_train, i, 0)
-    #     X_train = np.delete(X_test, i, 0)
-    #     continue
-
     regression_model.fit(X_train, Y_train[strategy_result_col_names[i]])
     regression_models.append(regression_model)
 
@@ -150,24 +142,43 @@ for i in range(0, Y_train.shape[1]):
     random_forest_model.fit(X_train, Y_train[strategy_result_col_names[i]])
     random_forest_models.append(random_forest_model)
 
-
 # Make predictions for each label on the test data
 y_pred_regression = np.column_stack([regression_model.predict(X_test) for regression_model in regression_models])
 y_pred_random_forest = np.column_stack([random_forest_model.predict(X_test) for random_forest_model in random_forest_models])
 
-accuracies_regression = [accuracy_score(Y_test.to_numpy().astype(str)[:, i], y_pred_regression.astype(str)[:, i]) for i in range(Y_test.shape[1])]
-precisions_regression = [precision_score(Y_test.to_numpy().astype(str)[:,i], y_pred_regression.astype(str)[:,i], average=None, zero_division='warn') for i in range(Y_test.shape[1])]
-recalls_regression = [recall_score(Y_test.to_numpy().astype(str)[:, i], y_pred_regression.astype(str)[:, i], average=None) for i in range(Y_test.shape[1])]
-f1_scores_regression = [f1_score(Y_test.to_numpy().astype(str)[:, i], y_pred_regression.astype(str)[:, i], average=None) for i in range(Y_test.shape[1])]
+accuracies_regression_is_profitable = [accuracy_score(Y_test.to_numpy()[:,i].tolist(), y_pred_regression[:,i].tolist()) for i in range(Y_test.shape[1]-1)]
+accuracies_regression_best_strategy = accuracy_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_regression[:,Y_test.shape[1]-1])
+precisions_regression_is_profitable = [precision_score(Y_test.to_numpy()[:,i].tolist(), y_pred_regression[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+precisions_regression_best_strategy = precision_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_regression[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+recalls_regression_is_profitable = [recall_score(Y_test.to_numpy()[:,i].tolist(), y_pred_regression[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+recalls_regression_best_strategy = recall_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_regression[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+f1_regression_is_profitable = [f1_score(Y_test.to_numpy()[:,i].tolist(), y_pred_regression[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+f1_regression_best_strategy = f1_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_regression[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
 
-accuracies_random_forest = [accuracy_score(Y_test.to_numpy().astype(str)[:, i], y_pred_random_forest.astype(str)[:, i]) for i in range(Y_test.shape[1])]
-precisions_random_forest = [precision_score(Y_test.to_numpy().astype(str)[:,i], y_pred_random_forest.astype(str)[:,i], average=None, zero_division='warn') for i in range(Y_test.shape[1])]
-recalls_random_forest = [recall_score(Y_test.to_numpy().astype(str)[:, i], y_pred_random_forest.astype(str)[:, i], average=None) for i in range(Y_test.shape[1])]
-f1_scores_random_forest = [f1_score(Y_test.to_numpy().astype(str)[:, i], y_pred_random_forest.astype(str)[:, i], average=None) for i in range(Y_test.shape[1])]
+accuracies_random_forest_is_profitable = [accuracy_score(Y_test.to_numpy()[:,i].tolist(), y_pred_random_forest[:,i].tolist()) for i in range(Y_test.shape[1]-1)]
+accuracies_random_forest_best_strategy = accuracy_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_random_forest[:,Y_test.shape[1]-1])
+precisions_random_forest_is_profitable = [precision_score(Y_test.to_numpy()[:,i].tolist(), y_pred_random_forest[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+precisions_random_forest_best_strategy = precision_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_random_forest[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+recalls_random_forest_is_profitable = [recall_score(Y_test.to_numpy()[:,i].tolist(), y_pred_random_forest[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+recalls_random_forest_best_strategy = recall_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_random_forest[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+f1_random_forest_is_profitable = [f1_score(Y_test.to_numpy()[:,i].tolist(), y_pred_random_forest[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+f1_random_forest_best_strategy = f1_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_random_forest[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+
+results = ({
+        'Metric' : ['Accuracy', 'Precision', 'Recall', 'F1'],
+        'LR is_profitable': [mean(accuracies_regression_is_profitable), mean(precisions_regression_is_profitable),  mean(recalls_regression_is_profitable), mean(f1_regression_is_profitable)],
+        'RF is_profitable': [mean(accuracies_random_forest_is_profitable), mean(precisions_random_forest_is_profitable), mean(recalls_random_forest_is_profitable), mean(f1_random_forest_is_profitable)],
+        'LR best_strategy': [accuracies_regression_best_strategy, precisions_regression_best_strategy, recalls_regression_best_strategy, f1_regression_best_strategy],
+        'RF best_strategy': [accuracies_random_forest_best_strategy, precisions_random_forest_best_strategy, recalls_random_forest_best_strategy, f1_random_forest_best_strategy]
+        })
+
+results_table = pd.DataFrame(results).set_index('Metric')
+with open(f'{tables_dir_name}/ml_results_table_1.tex','w') as tf:
+    tf.write(results_table.to_latex())
+dfi.export(results_table.style, f'{tables_dir_name}/ml_results_table_1.png')
 
 profitable_strategies_hourly_t1.set_index('symbol', inplace=True)
 profitable_strategies_hourly_t2.set_index('symbol', inplace=True)
-# strategy_result_col_names = ['baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'stoch_is_prof', 'stoch_hourly_is_prof', 'mean_rever_is_prof', 'mean_rever_hourly_is_prof', 'rsi_is_prof', 'rsi_hourly_is_prof', 'best_strategy']
 
 imputer = SimpleImputer(strategy='mean')
 X_train = imputer.fit_transform(profitable_strategies_hourly_t1.drop(columns=strategy_result_col_names))
@@ -180,16 +191,6 @@ regression_models = []
 random_forest_models = []
 for i in range(0, Y_train.shape[1]):
     regression_model = LogisticRegression(max_iter=1000)
-
-
-    # need better solution to this problem
-    # if Y_train[strategy_result_col_names[i]].nunique() == 1:
-    #     Y_train = Y_train.drop(columns=strategy_result_col_names[i])
-    #     Y_test = Y_test.drop(columns=strategy_result_col_names[i])
-    #     X_train = np.delete(X_train, i, 0)
-    #     X_train = np.delete(X_test, i, 0)
-    #     continue
-
     regression_model.fit(X_train, Y_train[strategy_result_col_names[i]])
     regression_models.append(regression_model)
 
@@ -201,12 +202,34 @@ for i in range(0, Y_train.shape[1]):
 y_pred_regression = np.column_stack([regression_model.predict(X_test) for regression_model in regression_models])
 y_pred_random_forest = np.column_stack([random_forest_model.predict(X_test) for random_forest_model in random_forest_models])
 
-accuracies_regression = [accuracy_score(Y_test.to_numpy().astype(str)[:, i], y_pred_regression.astype(str)[:, i]) for i in range(Y_test.shape[1])]
-precisions_regression = [precision_score(Y_test.to_numpy().astype(str)[:,i], y_pred_regression.astype(str)[:,i], average=None, zero_division='warn') for i in range(Y_test.shape[1])]
-recalls_regression = [recall_score(Y_test.to_numpy().astype(str)[:, i], y_pred_regression.astype(str)[:, i], average=None) for i in range(Y_test.shape[1])]
-f1_scores_regression = [f1_score(Y_test.to_numpy().astype(str)[:, i], y_pred_regression.astype(str)[:, i], average=None) for i in range(Y_test.shape[1])]
+accuracies_regression_is_profitable = [accuracy_score(Y_test.to_numpy()[:,i].tolist(), y_pred_regression[:,i].tolist()) for i in range(Y_test.shape[1]-1)]
+accuracies_regression_best_strategy = accuracy_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_regression[:,Y_test.shape[1]-1])
+precisions_regression_is_profitable = [precision_score(Y_test.to_numpy()[:,i].tolist(), y_pred_regression[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+precisions_regression_best_strategy = precision_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_regression[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+recalls_regression_is_profitable = [recall_score(Y_test.to_numpy()[:,i].tolist(), y_pred_regression[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+recalls_regression_best_strategy = recall_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_regression[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+f1_regression_is_profitable = [f1_score(Y_test.to_numpy()[:,i].tolist(), y_pred_regression[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+f1_regression_best_strategy = f1_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_regression[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
 
+accuracies_random_forest_is_profitable = [accuracy_score(Y_test.to_numpy()[:,i].tolist(), y_pred_random_forest[:,i].tolist()) for i in range(Y_test.shape[1]-1)]
+accuracies_random_forest_best_strategy = accuracy_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_random_forest[:,Y_test.shape[1]-1])
 accuracies_random_forest = [accuracy_score(Y_test.to_numpy().astype(str)[:, i], y_pred_random_forest.astype(str)[:, i]) for i in range(Y_test.shape[1])]
-precisions_random_forest = [precision_score(Y_test.to_numpy().astype(str)[:,i], y_pred_random_forest.astype(str)[:,i], average=None, zero_division='warn') for i in range(Y_test.shape[1])]
-recalls_random_forest = [recall_score(Y_test.to_numpy().astype(str)[:, i], y_pred_random_forest.astype(str)[:, i], average=None) for i in range(Y_test.shape[1])]
-f1_scores_random_forest = [f1_score(Y_test.to_numpy().astype(str)[:, i], y_pred_random_forest.astype(str)[:, i], average=None) for i in range(Y_test.shape[1])]
+precisions_random_forest_is_profitable = [precision_score(Y_test.to_numpy()[:,i].tolist(), y_pred_random_forest[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+precisions_random_forest_best_strategy = precision_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_random_forest[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+recalls_random_forest_is_profitable = [recall_score(Y_test.to_numpy()[:,i].tolist(), y_pred_random_forest[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+recalls_random_forest_best_strategy = recall_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_random_forest[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+f1_random_forest_is_profitable = [f1_score(Y_test.to_numpy()[:,i].tolist(), y_pred_random_forest[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+f1_random_forest_best_strategy = f1_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_random_forest[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+
+results = ({
+        'Metric' : ['Accuracy', 'Precision', 'Recall', 'F1'],
+        'LR is_profitable': [mean(accuracies_regression_is_profitable), mean(precisions_regression_is_profitable),  mean(recalls_regression_is_profitable), mean(f1_regression_is_profitable)],
+        'RF is_profitable': [mean(accuracies_random_forest_is_profitable), mean(precisions_random_forest_is_profitable), mean(recalls_random_forest_is_profitable), mean(f1_random_forest_is_profitable)],
+        'LR best_strategy': [accuracies_regression_best_strategy, precisions_regression_best_strategy, recalls_regression_best_strategy, f1_regression_best_strategy],
+        'RF best_strategy': [accuracies_random_forest_best_strategy, precisions_random_forest_best_strategy, recalls_random_forest_best_strategy, f1_random_forest_best_strategy]
+        })
+
+results_table = pd.DataFrame(results).set_index('Metric')
+with open(f'{tables_dir_name}/ml_results_table_2.tex','w') as tf:
+    tf.write(results_table.to_latex())
+dfi.export(results_table.style, f'{tables_dir_name}/ml_results_table_2.png')
