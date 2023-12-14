@@ -15,12 +15,15 @@ def determine_profits(buy_signal, sell_signal):
     price_differences = sell_signal - buy_signal
     total_profits = price_differences[price_differences.notna()].sum()
     # percent_change = (total_profits/buy_signal.sum()) * 100
-    percent_change = (price_differences / buy_signal)
-    total_percent_change = (percent_change.sum() + percent_change.prod()) * 100 # or just percent_change.prod() ?
+    percent_change = (total_profits / buy_signal.max()) * 100
+    # print(f'total profits: {total_profits}')
+    # print(f'max buy price: {buy_signal.max()}')
+    # percent_change = (price_differences / buy_signal)
+    # total_percent_change = (percent_change.sum() + percent_change.prod()) * 100 # or just percent_change.prod() ?
     # compound_pct_change = (1 + (percent_change / 100))
     # total_percent_change = (compound_pct_change.prod() - 1) * 100
 
-    return total_profits, total_percent_change
+    return total_profits, percent_change
 
 def get_total_trades(trade_signal, baseline=False):
     if baseline:

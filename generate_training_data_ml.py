@@ -17,6 +17,9 @@ from stock_split_info import adjust_for_stock_split
 import random
 import csv
 import numpy as np
+import time
+from pathlib import Path
+import requests
 
 
 def get_stock_symbols(n):
@@ -28,12 +31,16 @@ def get_stock_symbols(n):
 
     return symbols[0:n]
 
-def generate_and_save_training_data(stock_symbols, data_client, start_date, end_date, file_name_1, file_name_2, col_names_hourly):
+def generate_and_save_training_data(stock_symbols, data_client, start_date, end_date, file_name_1, file_name_2, col_names, col_names_hourly, AV_API_KEY):
     start_of_trading_day = datetime(2022, 1, 1, 9, 30, 0).time() # 9:30am EST
     end_of_trading_day = datetime(2022, 1, 1, 16, 0, 0).time() # 4:00pm EST
     est = pytz.timezone('US/Eastern')
     year = start_date.year
-    existing_symbols = pd.read_csv(file_name_1).symbol.values
+
+    if not Path(file_name_1).exists():
+        existing_symbols = []
+    else:
+        existing_symbols = pd.read_csv(file_name_1).symbol.values
 
     profitable_strategies = {}
     best_strategies = {}
@@ -82,7 +89,7 @@ def generate_and_save_training_data(stock_symbols, data_client, start_date, end_
         crossover_signal = get_sma_crossover_signal(df, 20, 50)
 
         # Get Hourly SMA crossover signal of 10 and 20 day hourly moving averages
-        hourly_mean_crossover_signal = get_hourly_sma_crossover_signal(df, 10, 20)
+        hourly_mean_crossover_signal = get_hourly_sma_crossover_signal(df, 20, 50)
 
         slow_stochastic_oscillator = get_slow_stochastic_oscillator(df, '14D', '3D', 20, 80)
 
@@ -205,6 +212,48 @@ def generate_and_save_training_data(stock_symbols, data_client, start_date, end_
         best_strategy = max(strategies, key=strategies.get)
         best_strategies[stock_symbol] = best_strategy
 
+        # Company Info
+
+        endpoint = f"https://www.alphavantage.co/query"
+        function = 'OVERVIEW'
+
+        params = {
+            'function': function,
+            'symbol': stock_symbol,
+            'apikey': AV_API_KEY,
+        }
+
+        response = requests.get(endpoint, params=params)
+
+        if response.status_code == 200:
+            # if count == 1:
+            # write data_temp.keys as col names to file
+            # with open(file_name_2, 'a') as f:
+            #     writer = csv.writer(f)
+            #     writer.writerow(data_temp.keys)
+            company_data_dict = response.json()
+            company_data = pd.DataFrame.from_dict(company_data_dict, orient='index').T
+            if 'Symbol' not in company_data:
+                continue
+            company_data.set_index('Symbol', inplace=True)
+            # company_data.values.tolist()
+            # company_data.columns.tolist()
+        else:
+            print(f"Error: {response.status_code} - Unable to retrieve market cap data")
+            continue
+
+        time.sleep(3) # can only make 5 api calls per minute and 100 per day on free tier
+
+        if not Path(file_name_1).exists():
+            with open(file_name_1, 'a') as f:
+                writer = csv.writer(f)
+                writer.writerow(col_names + company_data.columns.tolist())
+
+        if not Path(file_name_2).exists():
+            with open(file_name_2, 'a') as f:
+                writer = csv.writer(f)
+                writer.writerow(col_names_hourly + company_data.columns.tolist())
+
         # Summary Statistics
         mean_price = df.mean()['close']
         std_dev = df.std()['close']
@@ -220,12 +269,16 @@ def generate_and_save_training_data(stock_symbols, data_client, start_date, end_
         cols_to_include = ['baseline_profits', 'sma_profits', 'sma_hourly_profits', 'stoch_profits', 'stoch_hourly_profits', 'mean_rever_profits', 'mean_rever_hourly_profits', 'rsi_profits', 'rsi_hourly_profits']
         hourly_df['best_strategy'] = hourly_df[cols_to_include].idxmax(axis='columns')
 
+        # Add company info to hourly df
+        hourly_df = hourly_df.merge(pd.DataFrame.from_dict(company_data), how='left', left_on='symbol', right_on='Symbol')
+
         # save is_profitable, profits, total trades, best strategy
         with open(file_name_1, 'a') as f:
             writer = csv.writer(f)
-            writer.writerow([stock_symbol] + is_profitable + total_profits + total_trades + [mean_price] + [std_dev] + [best_strategy])
+            writer.writerow([stock_symbol] + is_profitable + total_profits + total_trades + [mean_price] + [std_dev] + [best_strategy] + company_data.values.tolist())
 
-        hourly_df = hourly_df[col_names_hourly].fillna(0)
+        hourly_df = hourly_df[col_names_hourly+company_data.columns.tolist()].fillna(0)
+        # hourly_df = hourly_df.fillna(0)
         hourly_df.to_csv(file_name_2, mode='a', header=False, index=False)
 
     return profitable_strategies, best_strategies

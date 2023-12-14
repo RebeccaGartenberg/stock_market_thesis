@@ -9,7 +9,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from determine_trade_times import get_buy_and_sell_signals, get_baseline_signals, get_sma_crossover_signal, get_hourly_sma_crossover_signal, \
 get_slow_stochastic_oscillator, get_hourly_slow_stochastic_oscillator, get_mean_reversion_signal, get_hourly_mean_reversion_signal, \
-get_rsi_signal, get_hourly_rsi_signal
+get_rsi_signal, get_hourly_rsi_signal, \
+get_sma_crossover_signal_2, get_hourly_sma_crossover_signal_2, \
+get_slow_stochastic_oscillator_2, get_hourly_slow_stochastic_oscillator_2, get_mean_reversion_signal_2, get_hourly_mean_reversion_signal_2, \
+get_rsi_signal_2, get_hourly_rsi_signal_2
 from aggregate_data import merge_data, offset_data_by_business_days, get_aggregated_mean, get_aggregated_mean_hourly
 from plot_stock_data import plot
 from analyze_trades import determine_profits, get_total_trades, get_total_trades_per_hour, get_total_profits_per_hour, format_trade_signals
@@ -66,48 +69,57 @@ for stock_symbol in stock_symbols:
     baseline_buy_signal, baseline_sell_signal = get_baseline_signals(df)
 
     # Get SMA crossover signal of 10 and 20 day moving averages
-    crossover_signal = get_sma_crossover_signal(df, 20, 50)
+    # crossover_signal = get_sma_crossover_signal(df, 20, 50)
+    crossover_signal = get_sma_crossover_signal_2(df, 20, 50)
 
     # Get Hourly SMA crossover signal of 10 and 20 day hourly moving averages
-    hourly_mean_crossover_signal = get_hourly_sma_crossover_signal(df, 10, 20)
+    # hourly_mean_crossover_signal = get_hourly_sma_crossover_signal(df, 10, 20)
+    hourly_mean_crossover_signal = get_hourly_sma_crossover_signal_2(df, 20, 50)
 
-    slow_stochastic_oscillator = get_slow_stochastic_oscillator(df, '14D', '3D', 20, 80)
+    # slow_stochastic_oscillator = get_slow_stochastic_oscillator(df, '14D', '3D', 20, 80)
+    slow_stochastic_oscillator = get_slow_stochastic_oscillator_2(df, '14D', '3D', 20, 80)
 
-    slow_stochastic_oscillator_hourly = get_hourly_slow_stochastic_oscillator(df, '14D', '3D', 20, 80)
+    # slow_stochastic_oscillator_hourly = get_hourly_slow_stochastic_oscillator(df, '14D', '3D', 20, 80)
+    slow_stochastic_oscillator_hourly = get_hourly_slow_stochastic_oscillator_2(df, '14D', '3D', 20, 80)
 
     # Mean Reversion Strategy
-    mean_reversion_signal = get_mean_reversion_signal(df, '20D', [-1.5, 1.5])
+    # mean_reversion_signal = get_mean_reversion_signal(df, '20D', [-1.5, 1.5])
+    mean_reversion_signal = get_mean_reversion_signal_2(df, '20D', [-1.5, 1.5])
 
-    mean_reversion_signal_hourly = get_hourly_mean_reversion_signal(df, '20D', [-1.5, 1.5])
+    # mean_reversion_signal_hourly = get_hourly_mean_reversion_signal(df, '20D', [-1.5, 1.5])
+    mean_reversion_signal_hourly = get_hourly_mean_reversion_signal_2(df, '20D', [-1.5, 1.5])
 
     # RSI
-    rsi_signal = get_rsi_signal(df, '20D', 30, 70)
-    rsi_signal_hourly = get_hourly_rsi_signal(df, '20D', 30, 70)
+    # rsi_signal = get_rsi_signal(df, '20D', 30, 70)
+    rsi_signal = get_rsi_signal_2(df, '20D', 30, 70)
+    # rsi_signal_hourly = get_hourly_rsi_signal(df, '20D', 30, 70)
+    rsi_signal_hourly = get_hourly_rsi_signal_2(df, '20D', 30, 70)
 
     # Create plot showing all methods
-    plot(x_axis=df['timestamp'],
-        y_axis=[df['close'], baseline_buy_signal['close'], baseline_sell_signal['close'], crossover_signal['buy'],
-        crossover_signal['sell'], hourly_mean_crossover_signal['buy'], hourly_mean_crossover_signal['sell']],
-        x_axis_name='Timestamp (EST)',
-        y_axis_name='Close Price (USD)',
-        title=f"Stock: {stock_symbol} | {year} | Rule Based Methods",
-        x_axis_format="date",
-        legend_labels=[None, "Baseline Buy", "Baseline Sell", "SMA Crossover Buy", "SMA Crossover Sell", "Hourly SMA Buy", "Hourly SMA Sell"],
-        colors=['#bcbcbc', '#9fc5e8', '#0b5394', '#93c47d', '#38761d', '#ffd966', '#bf9000'],
-        marker=[None, '^', 'v', '^', 'v', '^', 'v'],
-        linestyle=['-', 'None', 'None', 'None', 'None', 'None', 'None'],
-        markersize=2,
-        alpha=[None, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
-        file_name=f"{dir_name}/{stock_symbol}_{year}.svg",
-        show_plot=False
-        )
-
+    # plot(x_axis=df['timestamp'],
+    #     y_axis=[df['close'], baseline_buy_signal['close'], baseline_sell_signal['close'], crossover_signal['buy'],
+    #     crossover_signal['sell'], hourly_mean_crossover_signal['buy'], hourly_mean_crossover_signal['sell']],
+    #     x_axis_name='Timestamp (EST)',
+    #     y_axis_name='Close Price (USD)',
+    #     title=f"Stock: {stock_symbol} | {year} | Rule Based Methods",
+    #     x_axis_format="date",
+    #     legend_labels=[None, "Baseline Buy", "Baseline Sell", "SMA Crossover Buy", "SMA Crossover Sell", "Hourly SMA Buy", "Hourly SMA Sell"],
+    #     colors=['#bcbcbc', '#9fc5e8', '#0b5394', '#93c47d', '#38761d', '#ffd966', '#bf9000'],
+    #     marker=[None, '^', 'v', '^', 'v', '^', 'v'],
+    #     linestyle=['-', 'None', 'None', 'None', 'None', 'None', 'None'],
+    #     markersize=2,
+    #     alpha=[None, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+    #     file_name=f"{dir_name}/{stock_symbol}_{year}.svg",
+    #     show_plot=False
+    #     )
+    # print(f'Stock: {stock_symbol}')
     # Compute profits from all methods
     baseline_buy_signal = format_trade_signals(baseline_buy_signal, True)
     baseline_sell_signal = format_trade_signals(baseline_sell_signal, True)
     total_profits_baseline, percent_change_baseline = determine_profits(baseline_buy_signal["close"], baseline_sell_signal["close"])
 
     trade_signals = format_trade_signals(crossover_signal)
+
     total_profits_crossover, percent_change_crossover = determine_profits(trade_signals['buy'], trade_signals['sell'].shift(-1))
 
     trade_signals = format_trade_signals(hourly_mean_crossover_signal)
@@ -137,7 +149,7 @@ for stock_symbol in stock_symbols:
             'Percent Change (%)': [percent_change_baseline, percent_change_crossover, percent_change_crossover_hourly, percent_change_stoch, percent_change_stoch_hourly, percent_change_mean_reversion, percent_change_mean_reversion_hourly, percent_change_rsi, percent_change_rsi_hourly]}
     profit_values_table = pd.DataFrame(profit_values)
 
-    dfi.export(profit_values_table.style, f'{tables_dir_name}/{stock_symbol}_{year}_table.png')
+    dfi.export(profit_values_table.style, f'{tables_dir_name}/{stock_symbol}_{year}_table_3.png')
 
     strategies = {'baseline': total_profits_baseline, 'sma_crossover': total_profits_crossover, 'hourly_crossover': total_profits_crossover_hourly, 'stoch_osc': total_profits_stoch, 'stoch_osc_hourly': total_profits_stoch_hourly, 'mean_reversion': total_profits_mean_reversion, 'mean_reversion_hourly': total_profits_mean_reversion_hourly, 'rsi': total_profits_rsi, 'rsi_hourly': total_profits_rsi_hourly}
     best_strategy = max(strategies, key=strategies.get)

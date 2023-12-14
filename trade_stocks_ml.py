@@ -14,6 +14,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+from sklearn import svm
 import time
 import csv
 import pytz
@@ -30,13 +31,11 @@ AV_API_KEY = params.get("alpha_vantage").get("api_key")
 year = params.get("year")
 tables_dir_name = params.get("ml_tables_directory")
 
-file_name = 'stock_strategy_data.csv'
-file_name_2 = 'stock_company_data.csv'
-file_name_3 = 'stock_strategy_data_hourly.csv'
-
+file_name_t0 = 'stock_strategy_data_t0.csv'
 file_name_t1 = 'stock_strategy_data_t1.csv'
 file_name_t2 = 'stock_strategy_data_t2.csv'
-file_name_hourly_t1 = 'stock_strategy_data__hourly_t1.csv'
+file_name_hourly_t0 = 'stock_strategy_data_hourly_t0.csv'
+file_name_hourly_t1 = 'stock_strategy_data_hourly_t1.csv'
 file_name_hourly_t2 = 'stock_strategy_data_hourly_t2.csv'
 
 # Only use these lines first time
@@ -49,15 +48,21 @@ col_names=(['symbol','baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'sto
             'mean_rever_total_trades', 'mean_rever_hourly_total_trades', 'rsi_total_trades', 'rsi_hourly_total_trades',
             'mean_price','std_dev','best_strategy'
 ])
-if not Path(file_name_t1).exists():
-    with open(file_name_t1, 'a') as f:
-        writer = csv.writer(f)
-        writer.writerow(col_names)
 
-if not Path(file_name_t2).exists():
-    with open(file_name_t2, 'a') as f:
-        writer = csv.writer(f)
-        writer.writerow(col_names)
+# if not Path(file_name_t0).exists():
+#     with open(file_name_t0, 'a') as f:
+#         writer = csv.writer(f)
+#         writer.writerow(col_names)
+#
+# if not Path(file_name_t1).exists():
+#     with open(file_name_t1, 'a') as f:
+#         writer = csv.writer(f)
+#         writer.writerow(col_names)
+#
+# if not Path(file_name_t2).exists():
+#     with open(file_name_t2, 'a') as f:
+#         writer = csv.writer(f)
+#         writer.writerow(col_names)
 
 # strategy_col_names = (['symbol','baseline','sma','sma_hourly', 'stoch', 'stoch_hourly', 'mean_rever', 'mean_rever_hourly', 'rsi', 'rsi_hourly'])
 
@@ -74,19 +79,30 @@ col_names_hourly=(['symbol','hour','baseline_is_prof','sma_is_prof','sma_hourly_
             'mean_rever_total_trades', 'mean_rever_hourly_total_trades', 'rsi_total_trades', 'rsi_hourly_total_trades',
             'mean_price', 'std_dev', 'best_strategy'
 ])
-if not Path(file_name_hourly_t1).exists():
-    with open(file_name_hourly_t1, 'a') as f:
-        writer = csv.writer(f)
-        writer.writerow(col_names_hourly)
 
-if not Path(file_name_hourly_t2).exists():
-    with open(file_name_hourly_t2, 'a') as f:
-        writer = csv.writer(f)
-        writer.writerow(col_names_hourly)
+# if not Path(file_name_hourly_t0).exists():
+#     with open(file_name_hourly_t0, 'a') as f:
+#         writer = csv.writer(f)
+#         writer.writerow(col_names_hourly)
+#
+# if not Path(file_name_hourly_t1).exists():
+#     with open(file_name_hourly_t1, 'a') as f:
+#         writer = csv.writer(f)
+#         writer.writerow(col_names_hourly)
+#
+# if not Path(file_name_hourly_t2).exists():
+#     with open(file_name_hourly_t2, 'a') as f:
+#         writer = csv.writer(f)
+#         writer.writerow(col_names_hourly)
 
-stock_symbols = get_stock_symbols(5)
+stock_symbols = get_stock_symbols(10)
 data_client = StockHistoricalDataClient(API_KEY, SECRET_KEY)
 est = pytz.timezone('US/Eastern')
+
+# files : t0_labels, t0_features, t1_labels, t1 features, t0_labels_hourly, t0_features_hourly, t1_labels_hourly, t1 features_hourly
+
+t0_start_date = datetime(year-1, 7, 1)
+t0_end_date = datetime(year-1, 12, 31).replace(hour=17, minute=0, second=0, microsecond=0, tzinfo = est)
 t1_start_date = datetime(year, 1, 1)
 t1_end_date = datetime(year, 6, 30).replace(hour=17, minute=0, second=0, microsecond=0, tzinfo = est)
 t2_start_date = datetime(year, 7, 1)
@@ -98,15 +114,26 @@ t2_end_date = datetime(year, 12, 31).replace(hour=17, minute=0, second=0, micros
 profitable_strategies, best_strategies = generate_and_save_training_data(
                                             stock_symbols,
                                             data_client,
+                                            t0_start_date,
+                                            t0_end_date,
+                                            file_name_t0,
+                                            file_name_hourly_t0,
+                                            col_names,
+                                            col_names_hourly,
+                                            AV_API_KEY
+                                        )
+
+profitable_strategies, best_strategies = generate_and_save_training_data(
+                                            stock_symbols,
+                                            data_client,
                                             t1_start_date,
                                             t1_end_date,
                                             file_name_t1,
                                             file_name_hourly_t1,
-                                            col_names_hourly
+                                            col_names,
+                                            col_names_hourly,
+                                            AV_API_KEY
                                         )
-
-profitable_strategies_t1 = pd.read_csv(file_name_t1, error_bad_lines=False)
-profitable_strategies_hourly_t1 = pd.read_csv(file_name_hourly_t1, error_bad_lines=False)
 
 profitable_strategies, best_strategies = generate_and_save_training_data(
                                             stock_symbols,
@@ -115,36 +142,77 @@ profitable_strategies, best_strategies = generate_and_save_training_data(
                                             t2_end_date,
                                             file_name_t2,
                                             file_name_hourly_t2,
-                                            col_names_hourly
+                                            col_names,
+                                            col_names_hourly,
+                                            AV_API_KEY
                                         )
-profitable_strategies_t2 = pd.read_csv(file_name_t2, error_bad_lines=False)
-profitable_strategies_hourly_t2 = pd.read_csv(file_name_hourly_t2, error_bad_lines=False)
+pdb.set_trace()
+labels = ['baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'stoch_is_prof', 'stoch_hourly_is_prof',
+            'mean_rever_is_prof', 'mean_rever_hourly_is_prof', 'rsi_is_prof', 'rsi_hourly_is_prof', 'best_strategy']
 
+profitable_strategies_t0 = pd.read_csv(file_name_t0, error_bad_lines=False)
+profitable_strategies_t1 = pd.read_csv(file_name_t1, error_bad_lines=False)
+profitable_strategies_t2 = pd.read_csv(file_name_t2, error_bad_lines=False)
+
+profitable_strategies_t0.set_index('symbol', inplace=True)
 profitable_strategies_t1.set_index('symbol', inplace=True)
 profitable_strategies_t2.set_index('symbol', inplace=True)
-strategy_result_col_names = ['baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'stoch_is_prof', 'stoch_hourly_is_prof', 'mean_rever_is_prof', 'mean_rever_hourly_is_prof', 'rsi_is_prof', 'rsi_hourly_is_prof', 'best_strategy']
+
+training_data = profitable_strategies_t1[labels].merge(profitable_strategies_t0.drop(labels, axis=1), how='left', right_on='symbol', left_on='symbol')
+testing_data = profitable_strategies_t2[labels].merge(profitable_strategies_t1.drop(labels, axis=1), how='left', right_on='symbol', left_on='symbol')
+
+profitable_strategies_hourly_t0 = pd.read_csv(file_name_hourly_t0, error_bad_lines=False)
+profitable_strategies_hourly_t1 = pd.read_csv(file_name_hourly_t1, error_bad_lines=False)
+profitable_strategies_hourly_t2 = pd.read_csv(file_name_hourly_t2, error_bad_lines=False)
+
+profitable_strategies_hourly_t0.set_index('symbol', inplace=True)
+profitable_strategies_hourly_t1.set_index('symbol', inplace=True)
+profitable_strategies_hourly_t2.set_index('symbol', inplace=True)
+
+training_data_hourly = profitable_strategies_hourly_t1[['hour']+labels].merge(profitable_strategies_hourly_t0.drop(labels, axis=1), how='left', right_on=['symbol','hour'], left_on=['symbol','hour'])
+testing_data_hourly = profitable_strategies_hourly_t2[['hour']+labels].merge(profitable_strategies_hourly_t1.drop(labels, axis=1), how='left', right_on=['symbol','hour'], left_on=['symbol','hour'])
+
+pdb.set_trace()
+
+# profitable_strategies_t1 = pd.read_csv(file_name_t1, error_bad_lines=False)
+# profitable_strategies_hourly_t1 = pd.read_csv(file_name_hourly_t1, error_bad_lines=False)
+
+# profitable_strategies_t2 = pd.read_csv(file_name_t2, error_bad_lines=False)
+# profitable_strategies_hourly_t2 = pd.read_csv(file_name_hourly_t2, error_bad_lines=False)
+
+# profitable_strategies_t1.set_index('symbol', inplace=True)
+# profitable_strategies_t2.set_index('symbol', inplace=True)
+# strategy_result_col_names = ['baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'stoch_is_prof', 'stoch_hourly_is_prof', 'mean_rever_is_prof', 'mean_rever_hourly_is_prof', 'rsi_is_prof', 'rsi_hourly_is_prof', 'best_strategy']
 
 imputer = SimpleImputer(strategy='mean')
-X_train = imputer.fit_transform(profitable_strategies_t1.drop(columns=strategy_result_col_names))
-X_test = imputer.fit_transform(profitable_strategies_t2.drop(columns=strategy_result_col_names))
+X_train = imputer.fit_transform(training_data.drop(columns=labels))
+X_test = imputer.fit_transform(testing_data.drop(columns=labels))
 
-Y_train = profitable_strategies_t1[strategy_result_col_names]
-Y_test = profitable_strategies_t2[strategy_result_col_names]
+Y_train = training_data[labels]
+Y_test = testing_data[labels]
+
+pdb.set_trace()
 
 regression_models = []
 random_forest_models = []
+svm_models = []
 for i in range(0, Y_train.shape[1]):
     regression_model = LogisticRegression(max_iter=1000)
-    regression_model.fit(X_train, Y_train[strategy_result_col_names[i]])
+    regression_model.fit(X_train, Y_train[labels[i]])
     regression_models.append(regression_model)
 
     random_forest_model = RandomForestClassifier(n_estimators = 100)
-    random_forest_model.fit(X_train, Y_train[strategy_result_col_names[i]])
+    random_forest_model.fit(X_train, Y_train[labels[i]])
     random_forest_models.append(random_forest_model)
+
+    svm_model = svm.SVC()
+    svm_model.fit(X_train, Y_train[labels[i]])
+    svm_models.append(svm_model)
 
 # Make predictions for each label on the test data
 y_pred_regression = np.column_stack([regression_model.predict(X_test) for regression_model in regression_models])
 y_pred_random_forest = np.column_stack([random_forest_model.predict(X_test) for random_forest_model in random_forest_models])
+y_pred_svm = np.column_stack([svm_model.predict(X_test) for svm_model in svm_models])
 
 accuracies_regression_is_profitable = [accuracy_score(Y_test.to_numpy()[:,i].tolist(), y_pred_regression[:,i].tolist()) for i in range(Y_test.shape[1]-1)]
 accuracies_regression_best_strategy = accuracy_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_regression[:,Y_test.shape[1]-1])
@@ -164,12 +232,23 @@ recalls_random_forest_best_strategy = recall_score(Y_test.to_numpy()[:,Y_test.sh
 f1_random_forest_is_profitable = [f1_score(Y_test.to_numpy()[:,i].tolist(), y_pred_random_forest[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
 f1_random_forest_best_strategy = f1_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_random_forest[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
 
+accuracies_svm_is_profitable = [accuracy_score(Y_test.to_numpy()[:,i].tolist(), y_pred_svm[:,i].tolist()) for i in range(Y_test.shape[1]-1)]
+accuracies_svm_best_strategy = accuracy_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_svm[:,Y_test.shape[1]-1])
+precisions_svm_is_profitable = [precision_score(Y_test.to_numpy()[:,i].tolist(), y_pred_svm[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+precisions_svm_best_strategy = precision_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_svm[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+recalls_svm_is_profitable = [recall_score(Y_test.to_numpy()[:,i].tolist(), y_pred_svm[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+recalls_svm_best_strategy = recall_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_svm[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+f1_svm_is_profitable = [f1_score(Y_test.to_numpy()[:,i].tolist(), y_pred_svm[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+f1_svm_best_strategy = f1_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_svm[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+
 results = ({
         'Metric' : ['Accuracy', 'Precision', 'Recall', 'F1'],
         'LR is_profitable': [mean(accuracies_regression_is_profitable), mean(precisions_regression_is_profitable),  mean(recalls_regression_is_profitable), mean(f1_regression_is_profitable)],
         'RF is_profitable': [mean(accuracies_random_forest_is_profitable), mean(precisions_random_forest_is_profitable), mean(recalls_random_forest_is_profitable), mean(f1_random_forest_is_profitable)],
+        'SVM is_profitable': [mean(accuracies_svm_is_profitable), mean(precisions_svm_is_profitable), mean(recalls_svm_is_profitable), mean(f1_svm_is_profitable)],
         'LR best_strategy': [accuracies_regression_best_strategy, precisions_regression_best_strategy, recalls_regression_best_strategy, f1_regression_best_strategy],
-        'RF best_strategy': [accuracies_random_forest_best_strategy, precisions_random_forest_best_strategy, recalls_random_forest_best_strategy, f1_random_forest_best_strategy]
+        'RF best_strategy': [accuracies_random_forest_best_strategy, precisions_random_forest_best_strategy, recalls_random_forest_best_strategy, f1_random_forest_best_strategy],
+        'SVM best_strategy': [accuracies_svm_best_strategy, precisions_svm_best_strategy, recalls_svm_best_strategy, f1_svm_best_strategy],
         })
 
 results_table = pd.DataFrame(results).set_index('Metric')
@@ -181,26 +260,32 @@ profitable_strategies_hourly_t1.set_index('symbol', inplace=True)
 profitable_strategies_hourly_t2.set_index('symbol', inplace=True)
 
 imputer = SimpleImputer(strategy='mean')
-X_train = imputer.fit_transform(profitable_strategies_hourly_t1.drop(columns=strategy_result_col_names))
-X_test = imputer.fit_transform(profitable_strategies_hourly_t2.drop(columns=strategy_result_col_names))
+X_train = imputer.fit_transform(profitable_strategies_hourly_t1.drop(columns=labels))
+X_test = imputer.fit_transform(profitable_strategies_hourly_t2.drop(columns=labels))
 
-Y_train = profitable_strategies_hourly_t1[strategy_result_col_names]
-Y_test = profitable_strategies_hourly_t2[strategy_result_col_names]
+Y_train = profitable_strategies_hourly_t1[labels]
+Y_test = profitable_strategies_hourly_t2[labels]
 
 regression_models = []
 random_forest_models = []
+svm_models = []
 for i in range(0, Y_train.shape[1]):
     regression_model = LogisticRegression(max_iter=1000)
-    regression_model.fit(X_train, Y_train[strategy_result_col_names[i]])
+    regression_model.fit(X_train, Y_train[labels[i]])
     regression_models.append(regression_model)
 
     random_forest_model = RandomForestClassifier(n_estimators = 100)
-    random_forest_model.fit(X_train, Y_train[strategy_result_col_names[i]])
+    random_forest_model.fit(X_train, Y_train[labels[i]])
     random_forest_models.append(random_forest_model)
+
+    svm_model = svm.SVC()
+    svm_model.fit(X_train, Y_train[labels[i]])
+    svm_models.append(svm_model)
 
 # Make predictions for each label on the test data
 y_pred_regression = np.column_stack([regression_model.predict(X_test) for regression_model in regression_models])
 y_pred_random_forest = np.column_stack([random_forest_model.predict(X_test) for random_forest_model in random_forest_models])
+y_pred_svm = np.column_stack([svm_model.predict(X_test) for svm_model in svm_models])
 
 accuracies_regression_is_profitable = [accuracy_score(Y_test.to_numpy()[:,i].tolist(), y_pred_regression[:,i].tolist()) for i in range(Y_test.shape[1]-1)]
 accuracies_regression_best_strategy = accuracy_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_regression[:,Y_test.shape[1]-1])
@@ -213,7 +298,6 @@ f1_regression_best_strategy = f1_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y
 
 accuracies_random_forest_is_profitable = [accuracy_score(Y_test.to_numpy()[:,i].tolist(), y_pred_random_forest[:,i].tolist()) for i in range(Y_test.shape[1]-1)]
 accuracies_random_forest_best_strategy = accuracy_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_random_forest[:,Y_test.shape[1]-1])
-accuracies_random_forest = [accuracy_score(Y_test.to_numpy().astype(str)[:, i], y_pred_random_forest.astype(str)[:, i]) for i in range(Y_test.shape[1])]
 precisions_random_forest_is_profitable = [precision_score(Y_test.to_numpy()[:,i].tolist(), y_pred_random_forest[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
 precisions_random_forest_best_strategy = precision_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_random_forest[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
 recalls_random_forest_is_profitable = [recall_score(Y_test.to_numpy()[:,i].tolist(), y_pred_random_forest[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
@@ -221,12 +305,23 @@ recalls_random_forest_best_strategy = recall_score(Y_test.to_numpy()[:,Y_test.sh
 f1_random_forest_is_profitable = [f1_score(Y_test.to_numpy()[:,i].tolist(), y_pred_random_forest[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
 f1_random_forest_best_strategy = f1_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_random_forest[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
 
+accuracies_svm_is_profitable = [accuracy_score(Y_test.to_numpy()[:,i].tolist(), y_pred_svm[:,i].tolist()) for i in range(Y_test.shape[1]-1)]
+accuracies_svm_best_strategy = accuracy_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_svm[:,Y_test.shape[1]-1])
+precisions_svm_is_profitable = [precision_score(Y_test.to_numpy()[:,i].tolist(), y_pred_svm[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+precisions_svm_best_strategy = precision_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_svm[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+recalls_svm_is_profitable = [recall_score(Y_test.to_numpy()[:,i].tolist(), y_pred_svm[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+recalls_svm_best_strategy = recall_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_svm[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+f1_svm_is_profitable = [f1_score(Y_test.to_numpy()[:,i].tolist(), y_pred_svm[:,i].tolist(), average='binary', zero_division='warn') for i in range(Y_test.shape[1]-1)]
+f1_svm_best_strategy = f1_score(Y_test.to_numpy()[:,Y_test.shape[1]-1], y_pred_svm[:,Y_test.shape[1]-1], average='macro', zero_division='warn')
+
 results = ({
         'Metric' : ['Accuracy', 'Precision', 'Recall', 'F1'],
         'LR is_profitable': [mean(accuracies_regression_is_profitable), mean(precisions_regression_is_profitable),  mean(recalls_regression_is_profitable), mean(f1_regression_is_profitable)],
         'RF is_profitable': [mean(accuracies_random_forest_is_profitable), mean(precisions_random_forest_is_profitable), mean(recalls_random_forest_is_profitable), mean(f1_random_forest_is_profitable)],
+        'SVM is_profitable': [mean(accuracies_svm_is_profitable), mean(precisions_svm_is_profitable), mean(recalls_svm_is_profitable), mean(f1_svm_is_profitable)],
         'LR best_strategy': [accuracies_regression_best_strategy, precisions_regression_best_strategy, recalls_regression_best_strategy, f1_regression_best_strategy],
-        'RF best_strategy': [accuracies_random_forest_best_strategy, precisions_random_forest_best_strategy, recalls_random_forest_best_strategy, f1_random_forest_best_strategy]
+        'RF best_strategy': [accuracies_random_forest_best_strategy, precisions_random_forest_best_strategy, recalls_random_forest_best_strategy, f1_random_forest_best_strategy],
+        'SVM best_strategy': [accuracies_svm_best_strategy, precisions_svm_best_strategy, recalls_svm_best_strategy, f1_svm_best_strategy],
         })
 
 results_table = pd.DataFrame(results).set_index('Metric')

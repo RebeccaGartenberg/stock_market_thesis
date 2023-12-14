@@ -8,7 +8,9 @@ def plot(x_axis: list,
         x_axis_name: str,
         y_axis_name: str,
         title: str,
+        y_lim: list=[],
         x_axis_format: str = "time",
+        error_bars=None,
         legend_labels: list[str] = None,
         colors: list[str] = None,
         marker: list[str] = None,
@@ -42,10 +44,15 @@ def plot(x_axis: list,
             line, = plt.plot(x_axis_plot, y_axis[plot_num], color=colors[plot_num], marker=marker, linestyle=linestyle)
             if legend_labels:
                 line.set_label(legend_labels[plot_num])
+    if error_bars is not None:
+        plt.errorbar(x_axis[0], y_axis[0], error_bars, linestyle='None', marker='o')
+        # plt.fill_between(x_axis[0], (y_axis[0]-error_bars).tolist(), (y_axis[0]+error_bars).tolist())
     plt.xlabel(x_axis_name, fontsize=10, fontweight='bold')
     plt.ylabel(y_axis_name, fontsize=10, fontweight='bold')
     plt.title(title, fontweight='bold')
     plt.legend(loc='best')
+    if len(y_lim) == 2:
+        plt.ylim(y_lim[0], y_lim[1])
     if show_plot:
         plt.show()
 
