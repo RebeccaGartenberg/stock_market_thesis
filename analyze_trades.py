@@ -15,7 +15,7 @@ def determine_profits(buy_signal, sell_signal):
     price_differences = sell_signal - buy_signal
     total_profits = price_differences[price_differences.notna()].sum()
     # percent_change = (total_profits/buy_signal.sum()) * 100
-    percent_change = (total_profits / buy_signal.max()) * 100
+    percent_change = (total_profits / buy_signal.max()) * 100 # subtract money lost from buy signal max?
     # print(f'total profits: {total_profits}')
     # print(f'max buy price: {buy_signal.max()}')
     # percent_change = (price_differences / buy_signal)
@@ -46,17 +46,6 @@ def get_total_trades_per_hour(trade_signal, trade_signal_2=None, baseline=False)
     buy_counts = trade_signal.groupby(trade_signal.index.hour)['buy'].count()
     sell_counts = trade_signal.groupby(trade_signal.index.hour)['sell'].count()
 
-    # plt.bar(buy_counts.index, buy_counts.values, width=0.4, label='Buys', align='center', alpha=0.7)
-    # plt.bar(sell_counts.index+0.4, sell_counts.values, width=0.4, label='Sells', align='center', alpha=0.7)
-    # plt.xlabel('Hour (EST)')
-    # plt.ylabel('Number of Trades')
-    # plt.title('Trades per Hour {method} {year}')
-    # plt.legend(loc='best')
-    # hour_labels = [f"{hour % 12} AM" if hour < 12 else f"{hour % 12 if hour > 12 else hour} PM" for hour in range(9, 18)]
-    # plt.xticks(range(9, 18), hour_labels)
-    # # Save or show figure
-    # plt.show()
-
     return buy_counts, sell_counts
 
 def get_total_profits_per_hour(buy_signal, sell_signal, baseline=False):
@@ -72,13 +61,5 @@ def get_total_profits_per_hour(buy_signal, sell_signal, baseline=False):
     price_differences = sell_signal - buy_signal
     price_differences.index =  pd.to_datetime(price_differences.index).tz_convert(est)
     profits = price_differences.groupby(price_differences.index.hour).sum()
-
-    # plt.bar(profits.index, profits.values)
-    # plt.xlabel('Hour (EST)')
-    # plt.ylabel('Profits per hour (USD)')
-    # plt.title('Profits per Hour {method} {year}')
-    # plt.xticks(range(9, 17))  # Set x-axis ticks to represent hours from 0 to 23
-    # Save or show figure
-    # plt.show()
 
     return profits

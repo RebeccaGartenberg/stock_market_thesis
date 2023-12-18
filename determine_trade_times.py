@@ -3,6 +3,7 @@ from aggregate_data import merge_data, offset_data_by_business_days, get_aggrega
 import pdb
 from datetime import timedelta
 import pandas as pd
+from plot_original_data import plot_original_data_trade_signals
 
 def sma(data, grouping, n_days):
     # Aggregate Data
@@ -55,7 +56,7 @@ def get_sma_crossover_signal(data, short_time_period, long_time_period):
 
     return crossover_signal
 
-def get_sma_crossover_signal_2(data, short_time_period, long_time_period):
+def get_sma_crossover_signal_2(data, short_time_period, long_time_period, dir_name=None, file_type=None):
     sma_short = sma_2(data, 'close', f'{short_time_period}D')
     sma_long = sma_2(data, 'close', f'{long_time_period}D')
 
@@ -69,6 +70,16 @@ def get_sma_crossover_signal_2(data, short_time_period, long_time_period):
     # crossover_signal = get_buy_and_sell_signals(sma_signal, f'sma_{long_time_period}_day', f'sma_{short_time_period}_day')
     crossover_signal = get_buy_and_sell_signals(sma_signal, f'sma_{short_time_period}_day', f'sma_{long_time_period}_day')
 
+    if dir_name is not None:
+        plot_original_data_trade_signals(data['symbol'][0],
+                                        data['timestamp'][0].year,
+                                        data['timestamp'],
+                                        [data['close'],sma_short, sma_long],
+                                        'sma_crossover',
+                                        ['Original data', f'{short_time_period} day SMA', f'{long_time_period} day SMA'],
+                                        dir_name,
+                                        file_type)
+
     return crossover_signal
 
 def get_hourly_sma_crossover_signal(data, short_time_period, long_time_period):
@@ -81,7 +92,7 @@ def get_hourly_sma_crossover_signal(data, short_time_period, long_time_period):
     return crossover_signal
 
 
-def get_hourly_sma_crossover_signal_2(data, short_time_period, long_time_period):
+def get_hourly_sma_crossover_signal_2(data, short_time_period, long_time_period, dir_name=None, file_type=None):
 
     hourly_sma_short = (
         data.groupby(data.index.hour)['close']
@@ -107,6 +118,16 @@ def get_hourly_sma_crossover_signal_2(data, short_time_period, long_time_period)
     # hourly_crossover_signal = get_buy_and_sell_signals(hourly_sma_signal, f'sma_{long_time_period}_day', f'sma_{short_time_period}_day')
     hourly_crossover_signal = get_buy_and_sell_signals(hourly_sma_signal, f'sma_{short_time_period}_day', f'sma_{long_time_period}_day')
 
+    if dir_name is not None:
+        plot_original_data_trade_signals(data['symbol'][0],
+                                        data['timestamp'][0].year,
+                                        data['timestamp'],
+                                        [data['close'], hourly_sma_signal[f'sma_{short_time_period}_day'], hourly_sma_signal[f'sma_{long_time_period}_day']],
+                                        'hourly_sma_crossover',
+                                        ['Original data', f'Hourly {short_time_period} day SMA', f'Hourly {long_time_period} day SMA'],
+                                        dir_name,
+                                        file_type)
+
     return hourly_crossover_signal
 
 def get_slow_stochastic_oscillator(data, k, d, low_thresh, high_thresh):
@@ -127,7 +148,7 @@ def get_slow_stochastic_oscillator(data, k, d, low_thresh, high_thresh):
 
     return new_data
 
-def get_slow_stochastic_oscillator_2(data, k, d, low_thresh, high_thresh):
+def get_slow_stochastic_oscillator_2(data, k, d, low_thresh, high_thresh, dir_name=None, file_type=None):
     hourly_osc = data.copy(deep=True)
     # Calculate the %K line
     hourly_osc['lowest_low'] = hourly_osc['low'].rolling(k).min()
@@ -147,6 +168,16 @@ def get_slow_stochastic_oscillator_2(data, k, d, low_thresh, high_thresh):
     hourly_osc['sell'] = np.where(hourly_osc['position'] == -1, hourly_osc['close'], np.NAN) # sell when current price rises above 1-day SMA
     hourly_osc['low_thresh'] = low_thresh
     hourly_osc['high_thresh'] = high_thresh
+
+    if dir_name is not None:
+        plot_original_data_trade_signals(data['symbol'][0],
+                                        data['timestamp'][0].year,
+                                        data['timestamp'],
+                                        [data['close'], hourly_osc['%K'], hourly_osc['%D']],
+                                        'slow_stoch',
+                                        ['Original data', '%K line', '%D line'],
+                                        dir_name,
+                                        file_type)
 
     return hourly_osc
 
@@ -182,7 +213,7 @@ def get_hourly_slow_stochastic_oscillator(data, k, d, low_thresh, high_thresh):
     return hourly_data
 
 
-def get_hourly_slow_stochastic_oscillator_2(data, k, d, low_thresh, high_thresh):
+def get_hourly_slow_stochastic_oscillator_2(data, k, d, low_thresh, high_thresh, dir_name=None, file_type=None):
     # Calculate the %K line
     # group data by day and hour
     hourly_low = (
@@ -234,6 +265,16 @@ def get_hourly_slow_stochastic_oscillator_2(data, k, d, low_thresh, high_thresh)
     hourly_osc['low_thresh'] = low_thresh
     hourly_osc['high_thresh'] = high_thresh
 
+    if dir_name is not None:
+        plot_original_data_trade_signals(data['symbol'][0],
+                                        data['timestamp'][0].year,
+                                        data['timestamp'],
+                                        [data['close'], hourly_osc['%K'], hourly_osc['%D']],
+                                        'hourly_slow_stoch',
+                                        ['Original data', 'Hourly %K line', 'Hourly %D line'],
+                                        dir_name,
+                                        file_type)
+
     return hourly_osc
 
 def get_mean_reversion_signal(data, n_days, threshold):
@@ -252,9 +293,8 @@ def get_mean_reversion_signal(data, n_days, threshold):
 
     return new_data
 
-def get_mean_reversion_signal_2(data, n_days, threshold):
+def get_mean_reversion_signal_2(data, n_days, threshold, dir_name=None, file_type=None):
     new_data = data.copy(deep=True)
-    # Calculate the %K line
     new_data['close_mean'] = new_data['close'].rolling(n_days).mean()
     new_data['deviation'] = new_data['close'] - new_data['close_mean']
     new_data['std_dev'] = (new_data['deviation'].pow(2)/new_data['close'].rolling(n_days).count()).pow(1/2)
@@ -266,11 +306,22 @@ def get_mean_reversion_signal_2(data, n_days, threshold):
     # Can add bolinger bands ***
     new_data.loc[new_data['z_score'] < threshold[0], 'signal'] = 1
     new_data.loc[new_data['z_score'] > threshold[1], 'signal'] = 0
+    new_data['low_thresh'] = threshold[0]
+    new_data['high_thresh'] = threshold[1]
 
     new_data['position'] = new_data[new_data['signal'].notna()]['signal'].diff() #new_data['signal'].diff()
     new_data['buy'] = np.where(new_data['position'] == 1, new_data['close'], np.NAN)
     new_data['sell'] = np.where(new_data['position'] == -1, new_data['close'], np.NAN)
 
+    if dir_name is not None:
+        plot_original_data_trade_signals(data['symbol'][0],
+                                        data['timestamp'][0].year,
+                                        data['timestamp'],
+                                        [data['close'], new_data['z_score'], new_data['low_thresh'], new_data['high_thresh']],
+                                        'mean_rever',
+                                        ['Original data', 'Z score', 'low threshold', 'high threshold'],
+                                        dir_name,
+                                        file_type)
     return new_data
 
 def get_hourly_mean_reversion_signal(data, n_days, threshold):
@@ -300,7 +351,7 @@ def get_hourly_mean_reversion_signal(data, n_days, threshold):
 
     return hourly_data
 
-def get_hourly_mean_reversion_signal_2(data, n_days, threshold):
+def get_hourly_mean_reversion_signal_2(data, n_days, threshold, dir_name=None, file_type=None):
 
     hourly_mean = (
         data.groupby(data.index.hour)['close']
@@ -332,11 +383,22 @@ def get_hourly_mean_reversion_signal_2(data, n_days, threshold):
     # Can add bolinger bands ***
     hourly_data.loc[hourly_data['z_score'] < threshold[0], 'signal'] = 1
     hourly_data.loc[hourly_data['z_score'] > threshold[1], 'signal'] = 0
+    hourly_data['low_thresh'] = threshold[0]
+    hourly_data['high_thresh'] = threshold[1]
 
     hourly_data['position'] = hourly_data[hourly_data['signal'].notna()]['signal'].diff() #hourly_data['signal'].diff()
     hourly_data['buy'] = np.where(hourly_data['position'] == 1, hourly_data['close'], np.NAN)
     hourly_data['sell'] = np.where(hourly_data['position'] == -1, hourly_data['close'], np.NAN)
 
+    if dir_name is not None:
+        plot_original_data_trade_signals(data['symbol'][0],
+                                        data['timestamp'][0].year,
+                                        data['timestamp'],
+                                        [data['close'], hourly_data['z_score'], hourly_data['low_thresh'], hourly_data['high_thresh']],
+                                        'hourly_mean_rever',
+                                        ['Original data', 'Hourly Z score', 'low threshold', 'high threshold'],
+                                        dir_name,
+                                        file_type)
     return hourly_data
 
 def get_rsi_signal(data, n_days, low_thresh, high_thresh, col='close'):
@@ -353,12 +415,14 @@ def get_rsi_signal(data, n_days, low_thresh, high_thresh, col='close'):
     return new_data
 
 
-def get_rsi_signal_2(data, n_days, low_thresh, high_thresh, col='close'):
+def get_rsi_signal_2(data, n_days, low_thresh, high_thresh, col='close', dir_name=None, file_type=None):
     new_data = data.copy(deep=True)
     new_data['rsi'] = calculate_rsi(data, col, n_days)
 
     new_data.loc[new_data['rsi'] < low_thresh, 'signal'] = 1
     new_data.loc[new_data['rsi'] > high_thresh, 'signal'] = 0
+    new_data['low_thresh'] = low_thresh
+    new_data['high_thresh'] = high_thresh
 
     # rsi_upward = (new_data['rsi'] > low_thresh) & (new_data['rsi'].shift(-1) <= low_thresh)
     # rsi_downward = (new_data['rsi'] < high_thresh) & (new_data['rsi'].shift(-1) >= high_thresh)
@@ -371,6 +435,15 @@ def get_rsi_signal_2(data, n_days, low_thresh, high_thresh, col='close'):
     new_data['buy'] = np.where(new_data['position'] == 1, new_data['close'], np.NAN)
     new_data['sell'] = np.where(new_data['position'] == -1, new_data['close'], np.NAN)
 
+    if dir_name is not None:
+        plot_original_data_trade_signals(data['symbol'][0],
+                                        data['timestamp'][0].year,
+                                        data['timestamp'],
+                                        [data['close'], new_data['rsi'], new_data['low_thresh'], new_data['high_thresh']],
+                                        'rsi',
+                                        ['Original data', 'RSI', 'low threshold', 'high threshold'],
+                                        dir_name,
+                                        file_type)
     return new_data
 
 def get_hourly_rsi_signal(data, n_days, low_thresh, high_thresh, col='close'):
@@ -406,7 +479,7 @@ def get_hourly_rsi_signal(data, n_days, low_thresh, high_thresh, col='close'):
 
     return hourly_data
 
-def get_hourly_rsi_signal_2(data, n_days, low_thresh, high_thresh, col='close'):
+def get_hourly_rsi_signal_2(data, n_days, low_thresh, high_thresh, col='close', dir_name=None, file_type=None):
     price_differences = data[col].diff()
     data['gain'] = price_differences.where(price_differences > 0, 0)
     data['loss'] = abs(price_differences.where(price_differences < 0, 0))
@@ -448,11 +521,22 @@ def get_hourly_rsi_signal_2(data, n_days, low_thresh, high_thresh, col='close'):
 
     hourly_data.loc[hourly_data['rsi'] < low_thresh, 'signal'] = 1
     hourly_data.loc[hourly_data['rsi'] > high_thresh, 'signal'] = 0
+    hourly_data['low_thresh'] = low_thresh
+    hourly_data['high_thresh'] = high_thresh
 
     hourly_data['position'] = hourly_data[hourly_data['signal'].notna()]['signal'].diff() #hourly_data['signal'].diff()
     hourly_data['buy'] = np.where(hourly_data['position'] == 1, hourly_data['close'], np.NAN)
     hourly_data['sell'] = np.where(hourly_data['position'] == -1, hourly_data['close'], np.NAN)
 
+    if dir_name is not None:
+        plot_original_data_trade_signals(data['symbol'][0],
+                                        data['timestamp'][0].year,
+                                        data['timestamp'],
+                                        [data['close'], hourly_data['rsi'], hourly_data['low_thresh'], hourly_data['high_thresh']],
+                                        'hourly_rsi',
+                                        ['Original data', 'Hourly RSI', 'low threshold', 'high threshold'],
+                                        dir_name,
+                                        file_type)
     return hourly_data
 
 def calculate_rsi(data, col, period):

@@ -54,3 +54,56 @@ def plot_hourly_mean_and_spread(stock_symbol, year, time_axis, price_axis: list,
     if file_name:
         plt.savefig(file_name, bbox_inches='tight')
         plt.close()
+
+def plot_hourly_number_of_trades(stock_symbol, hourly_total_trades, methods, year, dir_name, file_type='png', show_plot: bool = False):
+    plt.xlabel('Hour (EST)')
+    plt.ylabel('Number of Trades')
+    hour_labels = [f"{hour % 12} AM" if hour < 12 else f"{hour % 12 if hour > 12 else hour} PM" for hour in range(9, 18)]
+    plt.xticks(range(9, 18), hour_labels)
+    plt.title(f'Stock: {stock_symbol} | {year} | Total trades per hour')
+    plt.legend(loc='best')
+    file_name=f"{dir_name}/{stock_symbol}_{year}_hourly_trades.{file_type}"
+    colors = ['red', 'indianred', 'blue', 'cornflowerblue', 'darkorange', 'moccasin', 'green', 'yellowgreen', 'purple', 'violet',\
+        'yellow', 'gold', 'pink', 'hotpink', 'chocolate', 'saddlebrown']
+
+    if isinstance(hourly_total_trades, list):
+        for i, ht in enumerate(hourly_total_trades):
+            plt.bar(ht[0].index+0.05*(2*i), ht[0].values, width=0.05, label=f'{methods[i]} Buy', align='center', alpha=0.7, color=colors[2*i])
+            plt.bar(ht[1].index+0.05*(2*i+1), ht[1].values, width=0.05, label=f'{methods[i]} Sell', align='center', alpha=0.7, color=colors[(2*i)+1])
+    else:
+        plt.bar(hourly_total_trades[0].index, hourly_total_trades[0].values, width=0.4, label='Buys', align='center', alpha=0.7)
+        plt.bar(hourly_total_trades[1].index+0.4, hourly_total_trades[1].values, width=0.4, label='Sells', align='center', alpha=0.7)
+
+    plt.legend(loc='best', fontsize=5)
+
+    # Save or show figure
+    if show_plot:
+        plt.show()
+
+    if file_name:
+        plt.savefig(file_name, bbox_inches='tight')
+        plt.close()
+
+def plot_hourly_profits(stock_symbol, hourly_profits, methods, year, dir_name, file_type='png', show_plot: bool = False):
+    plt.xlabel('Hour (EST)')
+    plt.ylabel('Profits per hour (USD)')
+    hour_labels = [f"{hour % 12} AM" if hour < 12 else f"{hour % 12 if hour > 12 else hour} PM" for hour in range(9, 18)]
+    plt.xticks(range(9, 18), hour_labels)# Save or show figure
+    plt.title(f'Stock: {stock_symbol} | {year} | Total profits per hour')
+    file_name=f"{dir_name}/{stock_symbol}_{year}_hourly_profits.{file_type}"
+    colors = ['grey','red', 'cornflowerblue', 'darkorange', 'green', 'violet', 'gold', 'pink', 'chocolate']
+
+    if isinstance(hourly_profits, list):
+        for i, hp in enumerate(hourly_profits):
+            plt.bar(hp.index+0.1*i, hp.values, width=0.1, label=f'{methods[i]}', align='center', alpha=0.7, color=colors[i])
+    else:
+        plt.bar(hourly_profits.index, hourly_profits.values)
+    plt.legend(loc='best', fontsize=5)
+
+    # Save or show figure
+    if show_plot:
+        plt.show()
+
+    if file_name:
+        plt.savefig(file_name, bbox_inches='tight')
+        plt.close()

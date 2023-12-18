@@ -21,9 +21,28 @@ import time
 from pathlib import Path
 import requests
 
+def format_training_data(profitable_strategies):
+    training_data = profitable_strategies.replace('-', float("nan"))
+    training_data = training_data.replace('None', float("nan"))
+    training_data["state"] = training_data["Address"].apply(lambda x: x.split(', ')[-2])
+    training_data["gives_dividend"] = (profitable_strategies["DividendDate"] != "None").astype(int)
+
+    # Columns that need to be encoded: AssetType, Exchange, Currency, Country, Sector, Industry, state
+    exchange_cols = pd.get_dummies(training_data["Exchange"], prefix="exchange")
+    asset_type_cols = pd.get_dummies(training_data["AssetType"], prefix="asset_type")
+    currency_cols = pd.get_dummies(training_data["Currency"], prefix="currency")
+    country_cols = pd.get_dummies(training_data["Country"], prefix="country")
+    sector_cols = pd.get_dummies(training_data["Sector"], prefix="sector")
+    industry_cols = pd.get_dummies(training_data["Industry"], prefix="industry")
+    state_cols = pd.get_dummies(training_data["state"], prefix="state")
+
+    training_data = pd.concat([training_data, exchange_cols, asset_type_cols, currency_cols, country_cols, sector_cols, industry_cols, state_cols], axis=1)
+    training_data = training_data.drop(['FiscalYearEnd', 'LatestQuarter', 'Description', 'Name', 'Address', 'DividendDate', 'ExDividendDate',\
+                        'Exchange', 'AssetType', 'Currency', 'Country', 'Sector', 'Industry', 'state'], axis=1)
+    return training_data
 
 def get_stock_symbols(n):
-    symbol_df = pd.read_csv('./stock_symbols.csv', error_bad_lines=False)
+    symbol_df = pd.read_csv('./stock_lists/stock_symbols.csv', error_bad_lines=False)
     symbols = symbol_df.index.values
     random.shuffle(symbols)
     if n > len(symbols):
@@ -212,7 +231,7 @@ def generate_and_save_training_data(stock_symbols, data_client, start_date, end_
         best_strategy = max(strategies, key=strategies.get)
         best_strategies[stock_symbol] = best_strategy
 
-        # Company Info
+        # Get Company Info using Alpha Vantage
 
         endpoint = f"https://www.alphavantage.co/query"
         function = 'OVERVIEW'
@@ -226,20 +245,13 @@ def generate_and_save_training_data(stock_symbols, data_client, start_date, end_
         response = requests.get(endpoint, params=params)
 
         if response.status_code == 200:
-            # if count == 1:
-            # write data_temp.keys as col names to file
-            # with open(file_name_2, 'a') as f:
-            #     writer = csv.writer(f)
-            #     writer.writerow(data_temp.keys)
             company_data_dict = response.json()
             company_data = pd.DataFrame.from_dict(company_data_dict, orient='index').T
             if 'Symbol' not in company_data:
                 continue
             company_data.set_index('Symbol', inplace=True)
-            # company_data.values.tolist()
-            # company_data.columns.tolist()
         else:
-            print(f"Error: {response.status_code} - Unable to retrieve market cap data")
+            print(f"Error: {response.status_code} - Unable to retrieve company data")
             continue
 
         time.sleep(3) # can only make 5 api calls per minute and 100 per day on free tier
@@ -275,9 +287,9 @@ def generate_and_save_training_data(stock_symbols, data_client, start_date, end_
         # save is_profitable, profits, total trades, best strategy
         with open(file_name_1, 'a') as f:
             writer = csv.writer(f)
-            writer.writerow([stock_symbol] + is_profitable + total_profits + total_trades + [mean_price] + [std_dev] + [best_strategy] + company_data.values.tolist())
+            writer.writerow([stock_symbol] + is_profitable + total_profits + total_trades + [mean_price] + [std_dev] + [best_strategy] + company_data.values.tolist()[0])
 
-        hourly_df = hourly_df[col_names_hourly+company_data.columns.tolist()].fillna(0)
+        hourly_df = hourly_df[col_names_hourly+company_data.columns.tolist()] #.fillna(0)
         # hourly_df = hourly_df.fillna(0)
         hourly_df.to_csv(file_name_2, mode='a', header=False, index=False)
 
