@@ -9,10 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from determine_trade_times import get_buy_and_sell_signals, get_baseline_signals, get_sma_crossover_signal, get_hourly_sma_crossover_signal, \
 get_slow_stochastic_oscillator, get_hourly_slow_stochastic_oscillator, get_mean_reversion_signal, get_hourly_mean_reversion_signal, \
-get_rsi_signal, get_hourly_rsi_signal, \
-get_sma_crossover_signal_2, get_hourly_sma_crossover_signal_2, \
-get_slow_stochastic_oscillator_2, get_hourly_slow_stochastic_oscillator_2, get_mean_reversion_signal_2, get_hourly_mean_reversion_signal_2, \
-get_rsi_signal_2, get_hourly_rsi_signal_2
+get_rsi_signal, get_hourly_rsi_signal
 from aggregate_data import merge_data, offset_data_by_business_days, get_aggregated_mean, get_aggregated_mean_hourly
 from plot_stock_data import plot
 from analyze_trades import determine_profits, get_total_trades, get_total_trades_per_hour, get_total_profits_per_hour, format_trade_signals
@@ -48,7 +45,7 @@ methods = ['Baseline', 'SMA Crossover', 'Hourly Crossover', 'Slow Stoch Osc', 'S
 # Uncomment for custom dates
 # data_end_date = (datetime.today()+timedelta(days=-10)).replace(hour=16, minute=0, second=0, microsecond=0, tzinfo = est)
 # data_start_date = (data_end_date+timedelta(days=-5)).replace(hour=9, minute=0, second=0, microsecond=0, tzinfo = est)
-
+stock_symbols = ['TSLA', 'NFLX', 'AMAT']
 best_strategies = {}
 for stock_symbol in stock_symbols:
     data_bars_params = StockBarsRequest(
@@ -73,31 +70,31 @@ for stock_symbol in stock_symbols:
     baseline_buy_signal, baseline_sell_signal = get_baseline_signals(df)
 
     # Get SMA crossover signal of 10 and 20 day moving averages
-    # crossover_signal = get_sma_crossover_signal(df, 20, 50)
-    crossover_signal = get_sma_crossover_signal_2(df, 20, 50, tables_dir_name, 'svg')
+    # crossover_signal = get_sma_crossover_signal_old(df, 20, 50)
+    crossover_signal = get_sma_crossover_signal(df, 20, 50, tables_dir_name, 'svg')
 
     # Get Hourly SMA crossover signal of 10 and 20 day hourly moving averages
-    # hourly_mean_crossover_signal = get_hourly_sma_crossover_signal(df, 10, 20)
-    hourly_mean_crossover_signal = get_hourly_sma_crossover_signal_2(df, 20, 50, tables_dir_name, 'svg')
+    # hourly_mean_crossover_signal = get_hourly_sma_crossover_signal_old(df, 10, 20)
+    hourly_mean_crossover_signal = get_hourly_sma_crossover_signal(df, 20, 50, tables_dir_name, 'svg')
 
-    # slow_stochastic_oscillator = get_slow_stochastic_oscillator(df, '14D', '3D', 20, 80)
-    slow_stochastic_oscillator = get_slow_stochastic_oscillator_2(df, '14D', '3D', 20, 80, tables_dir_name, 'svg')
+    # slow_stochastic_oscillator = get_slow_stochastic_oscillator_old(df, '14D', '3D', 20, 80)
+    slow_stochastic_oscillator = get_slow_stochastic_oscillator(df, '14D', '3D', 20, 80, tables_dir_name, 'svg')
 
-    # slow_stochastic_oscillator_hourly = get_hourly_slow_stochastic_oscillator(df, '14D', '3D', 20, 80)
-    slow_stochastic_oscillator_hourly = get_hourly_slow_stochastic_oscillator_2(df, '14D', '3D', 20, 80, tables_dir_name, 'svg')
+    # slow_stochastic_oscillator_hourly = get_hourly_slow_stochastic_oscillator_old(df, '14D', '3D', 20, 80)
+    slow_stochastic_oscillator_hourly = get_hourly_slow_stochastic_oscillator(df, '14D', '3D', 20, 80, tables_dir_name, 'svg')
 
     # Mean Reversion Strategy
-    # mean_reversion_signal = get_mean_reversion_signal(df, '20D', [-1.5, 1.5])
-    mean_reversion_signal = get_mean_reversion_signal_2(df, '20D', [-1.5, 1.5], tables_dir_name, 'svg')
+    # mean_reversion_signal = get_mean_reversion_signal_old(df, '20D', [-1.5, 1.5])
+    mean_reversion_signal = get_mean_reversion_signal(df, '20D', [-1.5, 1.5], tables_dir_name, 'svg')
 
-    # mean_reversion_signal_hourly = get_hourly_mean_reversion_signal(df, '20D', [-1.5, 1.5])
-    mean_reversion_signal_hourly = get_hourly_mean_reversion_signal_2(df, '20D', [-1.5, 1.5], tables_dir_name, 'svg')
+    # mean_reversion_signal_hourly = get_hourly_mean_reversion_signal_old(df, '20D', [-1.5, 1.5])
+    mean_reversion_signal_hourly = get_hourly_mean_reversion_signal(df, '20D', [-1.5, 1.5], tables_dir_name, 'svg')
 
     # RSI
-    # rsi_signal = get_rsi_signal(df, '20D', 30, 70)
-    rsi_signal = get_rsi_signal_2(df, '20D', 30, 70, dir_name=tables_dir_name, file_type='svg')
-    # rsi_signal_hourly = get_hourly_rsi_signal(df, '20D', 30, 70)
-    rsi_signal_hourly = get_hourly_rsi_signal_2(df, '20D', 30, 70, dir_name=tables_dir_name, file_type='svg')
+    # rsi_signal = get_rsi_signal_old(df, '20D', 30, 70)
+    rsi_signal = get_rsi_signal(df, '3D', 30, 70, dir_name=tables_dir_name, file_type='png')
+    # rsi_signal_hourly = get_hourly_rsi_signal_old(df, '20D', 30, 70)
+    rsi_signal_hourly = get_hourly_rsi_signal(df, '20D', 30, 70, dir_name=tables_dir_name, file_type='png')
 
     y_axis=[df['close'], baseline_buy_signal['close'], baseline_sell_signal['close'], crossover_signal['buy'], crossover_signal['sell'], hourly_mean_crossover_signal['buy'], hourly_mean_crossover_signal['sell'],\
     slow_stochastic_oscillator['buy'], slow_stochastic_oscillator['sell'], slow_stochastic_oscillator_hourly['buy'], slow_stochastic_oscillator_hourly['sell'], mean_reversion_signal['buy'], mean_reversion_signal['sell'],\

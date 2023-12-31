@@ -6,7 +6,7 @@ import pandas as pd
 import pdb
 import yfinance as yf
 from datetime import datetime, timezone, date, timedelta
-from generate_training_data_ml import get_stock_symbols, generate_and_save_training_data, format_training_data
+from generate_training_data_ml import get_stock_symbols, generate_and_save_training_data, format_training_data, get_company_data, save_company_data, get_income_statement_data
 import requests
 import sklearn
 from sklearn.linear_model import LinearRegression, LogisticRegression
@@ -31,6 +31,7 @@ AV_API_KEY = params.get("alpha_vantage").get("api_key")
 year = params.get("year")
 training_data_dir = params.get("training_data_directory")
 tables_dir_name = params.get("ml_tables_directory")
+stock_list_dir = params.get("stock_list_directory")
 
 file_name_t0 = f'{training_data_dir}/stock_strategy_data_t0.csv'
 file_name_t1 = f'{training_data_dir}/stock_strategy_data_t1.csv'
@@ -40,6 +41,9 @@ file_name_hourly_t0 = f'{training_data_dir}/stock_strategy_data_hourly_t0.csv'
 file_name_hourly_t1 = f'{training_data_dir}/stock_strategy_data_hourly_t1.csv'
 file_name_hourly_t2 = f'{training_data_dir}/stock_strategy_data_hourly_t2.csv'
 file_name_hourly_t3 = f'{training_data_dir}/stock_strategy_data_hourly_t3.csv'
+company_data_file = f'{training_data_dir}/company_data.csv'
+annual_report_file = f'{training_data_dir}/annual_reports.csv'
+quarterly_report_file = f'{training_data_dir}/quarterly_reports.csv'
 
 col_names=(['symbol','baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'stoch_is_prof', 'stoch_hourly_is_prof',
             'mean_rever_is_prof', 'mean_rever_hourly_is_prof', 'rsi_is_prof', 'rsi_hourly_is_prof',
@@ -47,7 +51,7 @@ col_names=(['symbol','baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'sto
             'mean_rever_profits', 'mean_rever_hourly_profits', 'rsi_profits', 'rsi_hourly_profits',
             'baseline_total_trades','sma_total_trades','sma_hourly_total_trades', 'stoch_total_trades', 'stoch_hourly_total_trades',
             'mean_rever_total_trades', 'mean_rever_hourly_total_trades', 'rsi_total_trades', 'rsi_hourly_total_trades',
-            'mean_price','std_dev','best_strategy'
+            'mean_price','std_dev', 'low', 'high', 'best_strategy'
 ])
 
 col_names_hourly=(['symbol','hour','baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'stoch_is_prof', 'stoch_hourly_is_prof',
@@ -56,10 +60,10 @@ col_names_hourly=(['symbol','hour','baseline_is_prof','sma_is_prof','sma_hourly_
             'mean_rever_profits', 'mean_rever_hourly_profits', 'rsi_profits', 'rsi_hourly_profits',
             'baseline_total_trades','sma_total_trades','sma_hourly_total_trades', 'stoch_total_trades', 'stoch_hourly_total_trades',
             'mean_rever_total_trades', 'mean_rever_hourly_total_trades', 'rsi_total_trades', 'rsi_hourly_total_trades',
-            'mean_price', 'std_dev', 'best_strategy'
+            'mean_price', 'std_dev', 'low', 'high', 'best_strategy'
 ])
 
-stock_symbols = get_stock_symbols(10)
+# symbol_df = pd.read_csv('./stock_lists/stock_symbols.csv', error_bad_lines=False)
 data_client = StockHistoricalDataClient(API_KEY, SECRET_KEY)
 est = pytz.timezone('US/Eastern')
 
@@ -71,9 +75,18 @@ t2_start_date = datetime(year, 7, 1)
 t2_end_date = datetime(year, 12, 31).replace(hour=17, minute=0, second=0, microsecond=0, tzinfo = est)
 t3_start_date = datetime(year+1, 1, 1)
 t3_end_date = datetime(year+1, 6, 30).replace(hour=17, minute=0, second=0, microsecond=0, tzinfo = est)
-# Uncomment for custom dates
-# data_end_date = (datetime.today()+timedelta(days=-10)).replace(hour=16, minute=0, second=0, microsecond=0, tzinfo = est)
-# data_start_date = (data_end_date+timedelta(days=-5)).replace(hour=9, minute=0, second=0, microsecond=0, tzinfo = est)
+
+# Get symbols for training data
+nasdaq_symbols = get_stock_symbols(100, f'{stock_list_dir}/custom-nasdaq-stocks-stocks-all.csv')
+nyse_symbols = get_stock_symbols(100, f'{stock_list_dir}/custom-nyse-stocks-stocks-all.csv')
+save_company_data(pd.concat([nasdaq_symbols, nyse_symbols]), company_data_file)
+
+stock_symbols = pd.read_csv(company_data_file)["Symbol"].tolist()
+
+# Collect data on symbols
+get_income_statement_data(stock_symbols, annual_report_file, quarterly_report_file, AV_API_KEY)
+
+print(f'Getting data for t0: {t0_start_date} to {t0_end_date}')
 
 generate_and_save_training_data(stock_symbols,
                                 data_client,
@@ -86,6 +99,8 @@ generate_and_save_training_data(stock_symbols,
                                 AV_API_KEY
                                 )
 
+print(f'Getting data for t1: {t1_start_date} to {t1_end_date}')
+
 generate_and_save_training_data(stock_symbols,
                                 data_client,
                                 t1_start_date,
@@ -97,6 +112,8 @@ generate_and_save_training_data(stock_symbols,
                                 AV_API_KEY
                                 )
 
+print(f'Getting data for t2: {t2_start_date} to {t2_end_date}')
+
 generate_and_save_training_data(stock_symbols,
                                 data_client,
                                 t2_start_date,
@@ -107,6 +124,8 @@ generate_and_save_training_data(stock_symbols,
                                 col_names_hourly,
                                 AV_API_KEY
                                 )
+
+print(f'Getting data for t3: {t3_start_date} to {t3_end_date}')
 
 generate_and_save_training_data(stock_symbols,
                                 data_client,
@@ -122,54 +141,64 @@ generate_and_save_training_data(stock_symbols,
 labels = ['baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'stoch_is_prof', 'stoch_hourly_is_prof',
             'mean_rever_is_prof', 'mean_rever_hourly_is_prof', 'rsi_is_prof', 'rsi_hourly_is_prof', 'best_strategy']
 
+# Company data and reports
+company_data = pd.read_csv(company_data_file)
+annual_reports = pd.read_csv(annual_report_file)
+quarterly_reports = pd.read_csv(quarterly_report_file)
+
+# profitable strategies per stock
 profitable_strategies_t0 = pd.read_csv(file_name_t0)
 profitable_strategies_t1 = pd.read_csv(file_name_t1)
 profitable_strategies_t2 = pd.read_csv(file_name_t2)
 profitable_strategies_t3 = pd.read_csv(file_name_t3)
 
-training_data_t0 = format_training_data(profitable_strategies_t0)
-training_data_t1 = format_training_data(profitable_strategies_t1)
-training_data_t2 = format_training_data(profitable_strategies_t2)
-training_data_t3 = format_training_data(profitable_strategies_t3)
+# profitable strategies per hour per stock
+profitable_strategies_hourly_t0 = pd.read_csv(file_name_hourly_t0)
+profitable_strategies_hourly_t1 = pd.read_csv(file_name_hourly_t1)
+profitable_strategies_hourly_t2 = pd.read_csv(file_name_hourly_t2)
+profitable_strategies_hourly_t3 = pd.read_csv(file_name_hourly_t3)
 
-profitable_strategies_t0.set_index('symbol', inplace=True)
-profitable_strategies_t1.set_index('symbol', inplace=True)
-profitable_strategies_t2.set_index('symbol', inplace=True)
+quarterly_reports_df = quarterly_reports[['fiscalDateEnding', 'symbol', 'totalRevenue', 'ebitda', 'ebit']]
+quarterly_reports_df[['totalRevenue', 'ebitda', 'ebit']] = quarterly_reports_df[['totalRevenue', 'ebitda', 'ebit']].apply(pd.to_numeric, errors='coerce')
 
-training_data = profitable_strategies_t1[labels].merge(profitable_strategies_t0.drop(labels, axis=1), how='left', right_on='symbol', left_on='symbol')
-testing_data = profitable_strategies_t2[labels].merge(profitable_strategies_t1.drop(labels, axis=1), how='left', right_on='symbol', left_on='symbol')
+quarterly_reports_df[(pd.to_datetime(quarterly_reports_df["fiscalDateEnding"]) > pd.to_datetime(t0_start_date)) & (pd.to_datetime(quarterly_reports_df["fiscalDateEnding"]) <= pd.to_datetime(t0_end_date.date())) & (quarterly_reports_df['symbol'] == 'ZIVO')]
 
-profitable_strategies_hourly_t0 = pd.read_csv(file_name_hourly_t0, error_bad_lines=False)
-profitable_strategies_hourly_t1 = pd.read_csv(file_name_hourly_t1, error_bad_lines=False)
-profitable_strategies_hourly_t2 = pd.read_csv(file_name_hourly_t2, error_bad_lines=False)
+# select columns to use from company_data and quarterly_reports, combine with profitable strategies
+training_data_t0 = format_training_data(profitable_strategies_t0, company_data, quarterly_reports_df, t0_start_date, t0_end_date)
+training_data_t1 = format_training_data(profitable_strategies_t1, company_data, quarterly_reports_df, t1_start_date, t1_end_date)
+training_data_t2 = format_training_data(profitable_strategies_t2, company_data, quarterly_reports_df, t2_start_date, t2_end_date)
+training_data_t3 = format_training_data(profitable_strategies_t3, company_data, quarterly_reports_df, t3_start_date, t3_end_date)
 
-profitable_strategies_hourly_t0.set_index('symbol', inplace=True)
-profitable_strategies_hourly_t1.set_index('symbol', inplace=True)
-profitable_strategies_hourly_t2.set_index('symbol', inplace=True)
+training_data_hourly_t0 = format_training_data(profitable_strategies_hourly_t0, company_data, quarterly_reports_df, t0_start_date, t0_end_date)
+training_data_hourly_t1 = format_training_data(profitable_strategies_hourly_t1, company_data, quarterly_reports_df, t1_start_date, t1_end_date)
+training_data_hourly_t2 = format_training_data(profitable_strategies_hourly_t2, company_data, quarterly_reports_df, t2_start_date, t2_end_date)
+training_data_hourly_t3 = format_training_data(profitable_strategies_hourly_t3, company_data, quarterly_reports_df, t3_start_date, t3_end_date)
 
-training_data_hourly = profitable_strategies_hourly_t1[['hour']+labels].merge(profitable_strategies_hourly_t0.drop(labels, axis=1), how='left', right_on=['symbol','hour'], left_on=['symbol','hour'])
-testing_data_hourly = profitable_strategies_hourly_t2[['hour']+labels].merge(profitable_strategies_hourly_t1.drop(labels, axis=1), how='left', right_on=['symbol','hour'], left_on=['symbol','hour'])
+training_data_t0.set_index('symbol', inplace=True)
+training_data_t1.set_index('symbol', inplace=True)
+training_data_t2.set_index('symbol', inplace=True)
+training_data_t3.set_index('symbol', inplace=True)
 
-pdb.set_trace()
+training_data_hourly_t0.set_index('symbol', inplace=True)
+training_data_hourly_t1.set_index('symbol', inplace=True)
+training_data_hourly_t2.set_index('symbol', inplace=True)
+training_data_hourly_t3.set_index('symbol', inplace=True)
 
-# profitable_strategies_t1 = pd.read_csv(file_name_t1, error_bad_lines=False)
-# profitable_strategies_hourly_t1 = pd.read_csv(file_name_hourly_t1, error_bad_lines=False)
+training_data = training_data_t1[labels].merge(training_data_t0.drop(labels, axis=1), how='left', right_on='symbol', left_on='symbol')
+testing_data = training_data_t2[labels].merge(training_data_t1.drop(labels, axis=1), how='left', right_on='symbol', left_on='symbol')
 
-# profitable_strategies_t2 = pd.read_csv(file_name_t2, error_bad_lines=False)
-# profitable_strategies_hourly_t2 = pd.read_csv(file_name_hourly_t2, error_bad_lines=False)
-
-# profitable_strategies_t1.set_index('symbol', inplace=True)
-# profitable_strategies_t2.set_index('symbol', inplace=True)
-# strategy_result_col_names = ['baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'stoch_is_prof', 'stoch_hourly_is_prof', 'mean_rever_is_prof', 'mean_rever_hourly_is_prof', 'rsi_is_prof', 'rsi_hourly_is_prof', 'best_strategy']
+training_data_hourly = training_data_hourly_t1[['hour']+labels].merge(training_data_hourly_t0.drop(labels, axis=1), how='left', right_on=['symbol','hour'], left_on=['symbol','hour'])
+testing_data_hourly = training_data_hourly_t2[['hour']+labels].merge(training_data_hourly_t1.drop(labels, axis=1), how='left', right_on=['symbol','hour'], left_on=['symbol','hour'])
 
 imputer = SimpleImputer(strategy='mean')
+
+# Features
 X_train = imputer.fit_transform(training_data.drop(columns=labels))
 X_test = imputer.fit_transform(testing_data.drop(columns=labels))
 
+# Labels
 Y_train = training_data[labels]
 Y_test = testing_data[labels]
-
-pdb.set_trace()
 
 regression_models = []
 random_forest_models = []
@@ -234,15 +263,15 @@ with open(f'{tables_dir_name}/ml_results_table_1.tex','w') as tf:
     tf.write(results_table.to_latex())
 dfi.export(results_table.style, f'{tables_dir_name}/ml_results_table_1.png')
 
-profitable_strategies_hourly_t1.set_index('symbol', inplace=True)
-profitable_strategies_hourly_t2.set_index('symbol', inplace=True)
-
 imputer = SimpleImputer(strategy='mean')
-X_train = imputer.fit_transform(profitable_strategies_hourly_t1.drop(columns=labels))
-X_test = imputer.fit_transform(profitable_strategies_hourly_t2.drop(columns=labels))
 
-Y_train = profitable_strategies_hourly_t1[labels]
-Y_test = profitable_strategies_hourly_t2[labels]
+# Features
+X_train = imputer.fit_transform(training_data_hourly.drop(columns=labels))
+X_test = imputer.fit_transform(testing_data_hourly.drop(columns=labels))
+
+# Labels
+Y_train = training_data_hourly[labels].fillna(0)
+Y_test = testing_data_hourly[labels].fillna(0)
 
 regression_models = []
 random_forest_models = []

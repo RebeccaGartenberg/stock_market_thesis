@@ -7,6 +7,10 @@ def adjust_for_stock_split(data, stock_symbol, year):
     est = pytz.timezone('US/Eastern')
 
     split_info = yf.Ticker(stock_symbol).splits
+
+    if isinstance(split_info, list) and split_info == []:
+        return data
+
     split_info = split_info[split_info.index.year == year]
     split_info = split_info.reset_index()
 

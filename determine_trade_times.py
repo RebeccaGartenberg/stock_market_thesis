@@ -5,7 +5,7 @@ from datetime import timedelta
 import pandas as pd
 from plot_original_data import plot_original_data_trade_signals
 
-def sma(data, grouping, n_days):
+def sma_old(data, grouping, n_days):
     # Aggregate Data
     sma = get_aggregated_mean(data, grouping, n_days) # 1-day SMA
     # Offset data by 1 business day to compare each value to previous day's mean
@@ -17,7 +17,7 @@ def sma(data, grouping, n_days):
 
     return sma_data
 
-def sma_2(data, col, window):
+def sma(data, col, window):
     # Aggregate Data
     sma = data[col].rolling(window=window).mean()
     return sma
@@ -48,18 +48,17 @@ def hourly_sma(data, n_days):
 #
 #     return hourly_mean_data
 
-def get_sma_crossover_signal(data, short_time_period, long_time_period):
-    sma_short = sma(data, data.timestamp.dt.date, short_time_period)
-    sma_long = sma(data, data.timestamp.dt.date, long_time_period)
+def get_sma_crossover_signal_old(data, short_time_period, long_time_period):
+    sma_short = sma_old(data, data.timestamp.dt.date, short_time_period)
+    sma_long = sma_old(data, data.timestamp.dt.date, long_time_period)
     sma_long[f'sma_{short_time_period}_day'] = sma_short['close_mean']
     crossover_signal = get_buy_and_sell_signals(sma_long, 'close_mean', f'sma_{short_time_period}_day')
 
     return crossover_signal
 
-def get_sma_crossover_signal_2(data, short_time_period, long_time_period, dir_name=None, file_type=None):
-    sma_short = sma_2(data, 'close', f'{short_time_period}D')
-    sma_long = sma_2(data, 'close', f'{long_time_period}D')
-
+def get_sma_crossover_signal(data, short_time_period, long_time_period, dir_name=None, file_type=None):
+    sma_short = sma(data, 'close', f'{short_time_period}D')
+    sma_long = sma(data, 'close', f'{long_time_period}D')
     sma_signal = pd.DataFrame()
     sma_signal['timestamp'] = data['timestamp']
     sma_signal['close'] = data['close']
@@ -82,7 +81,7 @@ def get_sma_crossover_signal_2(data, short_time_period, long_time_period, dir_na
 
     return crossover_signal
 
-def get_hourly_sma_crossover_signal(data, short_time_period, long_time_period):
+def get_hourly_sma_crossover_signal_old(data, short_time_period, long_time_period):
     hourly_mean_short = hourly_sma(data, short_time_period)
     hourly_mean_long = hourly_sma(data, long_time_period)
     hourly_mean_long[f'hourly_mean_{short_time_period}_day'] = hourly_mean_short['close_hourly_mean']
@@ -92,7 +91,7 @@ def get_hourly_sma_crossover_signal(data, short_time_period, long_time_period):
     return crossover_signal
 
 
-def get_hourly_sma_crossover_signal_2(data, short_time_period, long_time_period, dir_name=None, file_type=None):
+def get_hourly_sma_crossover_signal(data, short_time_period, long_time_period, dir_name=None, file_type=None):
 
     hourly_sma_short = (
         data.groupby(data.index.hour)['close']
@@ -130,7 +129,7 @@ def get_hourly_sma_crossover_signal_2(data, short_time_period, long_time_period,
 
     return hourly_crossover_signal
 
-def get_slow_stochastic_oscillator(data, k, d, low_thresh, high_thresh):
+def get_slow_stochastic_oscillator_old(data, k, d, low_thresh, high_thresh):
     new_data = data.copy(deep=True)
     # Calculate the %K line
     new_data['lowest_low'] = new_data['low'].rolling(k).min()
@@ -148,7 +147,7 @@ def get_slow_stochastic_oscillator(data, k, d, low_thresh, high_thresh):
 
     return new_data
 
-def get_slow_stochastic_oscillator_2(data, k, d, low_thresh, high_thresh, dir_name=None, file_type=None):
+def get_slow_stochastic_oscillator(data, k, d, low_thresh, high_thresh, dir_name=None, file_type=None):
     hourly_osc = data.copy(deep=True)
     # Calculate the %K line
     hourly_osc['lowest_low'] = hourly_osc['low'].rolling(k).min()
@@ -158,6 +157,9 @@ def get_slow_stochastic_oscillator_2(data, k, d, low_thresh, high_thresh, dir_na
     hourly_osc['%D'] = hourly_osc['%K'].rolling(d).mean()
     # filter out first x days to account for delay
     hourly_osc = hourly_osc[hourly_osc['timestamp'] > hourly_osc['timestamp'][0]+timedelta(int(k.split('D')[0]))]
+
+    if hourly_osc.empty:
+        return hourly_osc
 
     # Combined
     hourly_osc.loc[(hourly_osc['%K'] < low_thresh) | (hourly_osc['%K'] > hourly_osc['%D']), 'signal'] = 1
@@ -181,7 +183,7 @@ def get_slow_stochastic_oscillator_2(data, k, d, low_thresh, high_thresh, dir_na
 
     return hourly_osc
 
-def get_hourly_slow_stochastic_oscillator(data, k, d, low_thresh, high_thresh):
+def get_hourly_slow_stochastic_oscillator_old(data, k, d, low_thresh, high_thresh):
     # Calculate the %K line
     # group data by day and hour
     hourly_low = get_aggregated_mean_hourly(data, k, 'min')
@@ -213,18 +215,18 @@ def get_hourly_slow_stochastic_oscillator(data, k, d, low_thresh, high_thresh):
     return hourly_data
 
 
-def get_hourly_slow_stochastic_oscillator_2(data, k, d, low_thresh, high_thresh, dir_name=None, file_type=None):
+def get_hourly_slow_stochastic_oscillator(data, k, d, low_thresh, high_thresh, dir_name=None, file_type=None):
     # Calculate the %K line
     # group data by day and hour
     hourly_low = (
-        data.groupby(data.index.hour)['close']
+        data.groupby(data.index.hour)['low']
         .rolling(window=k, min_periods=1)
         .min()
         .reset_index(level=0, drop=True)
         )
 
     hourly_high = (
-        data.groupby(data.index.hour)['close']
+        data.groupby(data.index.hour)['high']
         .rolling(window=k, min_periods=1)
         .max()
         .reset_index(level=0, drop=True)
@@ -255,6 +257,9 @@ def get_hourly_slow_stochastic_oscillator_2(data, k, d, low_thresh, high_thresh,
     # signals.loc[data['%K'] > data['%D'], 'signal'] = 1
     # signals.loc[data['%K'] < data['%D'], 'signal'] = 0
 
+    if hourly_osc.empty:
+        return hourly_osc
+
     # Combined
     hourly_osc.loc[(hourly_osc['%K'] < low_thresh) | (hourly_osc['%K'] > hourly_osc['%D']), 'signal'] = 1
     hourly_osc.loc[(hourly_osc['%K'] > high_thresh) | (hourly_osc['%K'] < hourly_osc['%D']), 'signal'] = 0
@@ -277,12 +282,13 @@ def get_hourly_slow_stochastic_oscillator_2(data, k, d, low_thresh, high_thresh,
 
     return hourly_osc
 
-def get_mean_reversion_signal(data, n_days, threshold):
+def get_mean_reversion_signal_old(data, n_days, threshold):
     new_data = data.copy(deep=True)
     # Calculate the %K line
     new_data['close_mean'] = new_data['close'].rolling(n_days).mean()
     new_data['deviation'] = new_data['close'] - new_data['close_mean']
     new_data['std_dev'] = (new_data['deviation'].pow(2)/new_data['close'].rolling(n_days).count()).pow(1/2)
+    new_data['std_dev']  = new_data['std_dev'].replace(0, 1e-10)
     new_data['z_score'] = new_data['deviation']/new_data['std_dev']
 
     new_data['signal'] = (np.where((new_data['z_score'] < threshold[0]), 1,
@@ -293,15 +299,19 @@ def get_mean_reversion_signal(data, n_days, threshold):
 
     return new_data
 
-def get_mean_reversion_signal_2(data, n_days, threshold, dir_name=None, file_type=None):
+def get_mean_reversion_signal(data, n_days, threshold, dir_name=None, file_type=None):
     new_data = data.copy(deep=True)
     new_data['close_mean'] = new_data['close'].rolling(n_days).mean()
     new_data['deviation'] = new_data['close'] - new_data['close_mean']
     new_data['std_dev'] = (new_data['deviation'].pow(2)/new_data['close'].rolling(n_days).count()).pow(1/2)
+    new_data['std_dev']  = new_data['std_dev'].replace(0, 1e-10)
     new_data['z_score'] = new_data['deviation']/new_data['std_dev']
 
     # filter out first x days to account for delay
     new_data = new_data[new_data['timestamp'] > new_data['timestamp'][0]+timedelta(int(n_days.split('D')[0]))]
+
+    if new_data.empty:
+        return new_data
 
     # Can add bolinger bands ***
     new_data.loc[new_data['z_score'] < threshold[0], 'signal'] = 1
@@ -324,7 +334,7 @@ def get_mean_reversion_signal_2(data, n_days, threshold, dir_name=None, file_typ
                                         file_type)
     return new_data
 
-def get_hourly_mean_reversion_signal(data, n_days, threshold):
+def get_hourly_mean_reversion_signal_old(data, n_days, threshold):
     hourly_mean = get_aggregated_mean_hourly(data, n_days, 'mean')
     hourly_counts = get_aggregated_mean_hourly(data, n_days, 'count')
     hourly_mean['timestamp'] = hourly_mean.index
@@ -351,7 +361,7 @@ def get_hourly_mean_reversion_signal(data, n_days, threshold):
 
     return hourly_data
 
-def get_hourly_mean_reversion_signal_2(data, n_days, threshold, dir_name=None, file_type=None):
+def get_hourly_mean_reversion_signal(data, n_days, threshold, dir_name=None, file_type=None):
 
     hourly_mean = (
         data.groupby(data.index.hour)['close']
@@ -375,11 +385,13 @@ def get_hourly_mean_reversion_signal_2(data, n_days, threshold, dir_name=None, f
     hourly_data['hourly_mean'] = hourly_mean # maybe merge here based on timestamp
     hourly_data['hourly_std_dev'] = hourly_std_dev
     hourly_data['deviation'] = hourly_data['close'] - hourly_data['hourly_mean']
+    hourly_data['hourly_std_dev']  = hourly_data['hourly_std_dev'].replace(0, 1e-10)
     hourly_data['z_score'] = hourly_data['deviation']/hourly_data['hourly_std_dev']
 
     # filter out first x days to account for delay
     hourly_data = hourly_data[hourly_data['timestamp'] > hourly_data['timestamp'][0]+timedelta(int(n_days.split('D')[0]))]
-
+    if hourly_data.empty:
+        return hourly_data
     # Can add bolinger bands ***
     hourly_data.loc[hourly_data['z_score'] < threshold[0], 'signal'] = 1
     hourly_data.loc[hourly_data['z_score'] > threshold[1], 'signal'] = 0
@@ -401,7 +413,7 @@ def get_hourly_mean_reversion_signal_2(data, n_days, threshold, dir_name=None, f
                                         file_type)
     return hourly_data
 
-def get_rsi_signal(data, n_days, low_thresh, high_thresh, col='close'):
+def get_rsi_signal_old(data, n_days, low_thresh, high_thresh, col='close'):
     new_data = data.copy(deep=True)
     new_data['rsi'] = calculate_rsi(data, col, n_days)
     rsi_upward = (new_data['rsi'] > low_thresh) & (new_data['rsi'].shift(-1) <= low_thresh)
@@ -415,10 +427,12 @@ def get_rsi_signal(data, n_days, low_thresh, high_thresh, col='close'):
     return new_data
 
 
-def get_rsi_signal_2(data, n_days, low_thresh, high_thresh, col='close', dir_name=None, file_type=None):
+def get_rsi_signal(data, n_days, low_thresh, high_thresh, col='close', dir_name=None, file_type=None):
     new_data = data.copy(deep=True)
     new_data['rsi'] = calculate_rsi(data, col, n_days)
 
+    if new_data.empty:
+        return new_data
     new_data.loc[new_data['rsi'] < low_thresh, 'signal'] = 1
     new_data.loc[new_data['rsi'] > high_thresh, 'signal'] = 0
     new_data['low_thresh'] = low_thresh
@@ -446,7 +460,7 @@ def get_rsi_signal_2(data, n_days, low_thresh, high_thresh, col='close', dir_nam
                                         file_type)
     return new_data
 
-def get_hourly_rsi_signal(data, n_days, low_thresh, high_thresh, col='close'):
+def get_hourly_rsi_signal_old(data, n_days, low_thresh, high_thresh, col='close'):
     price_differences = data[col].diff()
     data['gain'] = price_differences.where(price_differences > 0, 0)
     data['loss'] = -price_differences.where(price_differences < 0, 0)
@@ -479,7 +493,7 @@ def get_hourly_rsi_signal(data, n_days, low_thresh, high_thresh, col='close'):
 
     return hourly_data
 
-def get_hourly_rsi_signal_2(data, n_days, low_thresh, high_thresh, col='close', dir_name=None, file_type=None):
+def get_hourly_rsi_signal(data, n_days, low_thresh, high_thresh, col='close', dir_name=None, file_type=None):
     price_differences = data[col].diff()
     data['gain'] = price_differences.where(price_differences > 0, 0)
     data['loss'] = abs(price_differences.where(price_differences < 0, 0))
@@ -518,7 +532,8 @@ def get_hourly_rsi_signal_2(data, n_days, low_thresh, high_thresh, col='close', 
     # rsi_upward = (hourly_data['rsi'] > low_thresh) & (hourly_data['rsi'].shift(-1) <= low_thresh)
     # rsi_downward = (hourly_data['rsi'] < high_thresh) & (hourly_data['rsi'].shift(-1) >= high_thresh)
     # hourly_data['signal'] = np.where(rsi_upward, 1, np.where(rsi_downward, 0, float("nan")))
-
+    if hourly_data.empty:
+        return hourly_data
     hourly_data.loc[hourly_data['rsi'] < low_thresh, 'signal'] = 1
     hourly_data.loc[hourly_data['rsi'] > high_thresh, 'signal'] = 0
     hourly_data['low_thresh'] = low_thresh
@@ -548,8 +563,11 @@ def calculate_rsi(data, col, period):
     # gain = np.where(price_differences > 0, price_differences, 0)
     # loss = np.where(price_differences < 0, -price_differences, 0)
 
-    avg_gain = gain.rolling(window=period).mean()
-    avg_loss = loss.rolling(window=period).mean()
+    avg_gain = gain.rolling(window=period, min_periods=1).mean()
+    avg_loss = loss.rolling(window=period, min_periods=1).mean()
+    # data[data['timestamp'].dt.date == pd.to_datetime('2022-01-05')]['close'].count()
+    # avg_gain = gain.ewm(span=391*5, adjust=False).mean()
+    # avg_loss = loss.ewm(span=391*5, adjust=False).mean()
     avg_loss = avg_loss.replace(0, 1e-10)
 
     rs = avg_gain / avg_loss
