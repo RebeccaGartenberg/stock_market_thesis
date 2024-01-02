@@ -161,8 +161,6 @@ profitable_strategies_hourly_t3 = pd.read_csv(file_name_hourly_t3)
 quarterly_reports_df = quarterly_reports[['fiscalDateEnding', 'symbol', 'totalRevenue', 'ebitda', 'ebit']]
 quarterly_reports_df[['totalRevenue', 'ebitda', 'ebit']] = quarterly_reports_df[['totalRevenue', 'ebitda', 'ebit']].apply(pd.to_numeric, errors='coerce')
 
-quarterly_reports_df[(pd.to_datetime(quarterly_reports_df["fiscalDateEnding"]) > pd.to_datetime(t0_start_date)) & (pd.to_datetime(quarterly_reports_df["fiscalDateEnding"]) <= pd.to_datetime(t0_end_date.date())) & (quarterly_reports_df['symbol'] == 'ZIVO')]
-
 # select columns to use from company_data and quarterly_reports, combine with profitable strategies
 training_data_t0 = format_training_data(profitable_strategies_t0, company_data, quarterly_reports_df, t0_start_date, t0_end_date)
 training_data_t1 = format_training_data(profitable_strategies_t1, company_data, quarterly_reports_df, t1_start_date, t1_end_date)
