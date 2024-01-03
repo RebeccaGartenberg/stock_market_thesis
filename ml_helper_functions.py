@@ -5,6 +5,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 from sklearn import svm
 from sklearn.inspection import permutation_importance
+from sklearn.preprocessing import MinMaxScaler
 import time
 import numpy as np
 import pandas as pd
@@ -13,6 +14,27 @@ import matplotlib.pyplot as plt
 import dataframe_image as dfi
 from statistics import mean
 
+def normalize_data(training_data, labels):
+    # All features are normalized to be between 0 and 1
+    X = training_data.drop(columns=labels)
+    profit_features = (['baseline_profits','sma_profits','sma_hourly_profits', 'stoch_profits', 'stoch_hourly_profits',
+    'mean_rever_profits', 'mean_rever_hourly_profits', 'rsi_profits', 'rsi_hourly_profits']) # include low and high? can't include mean but then it doesn't make sense
+    exchange_cols = X.filter(regex=f'^exchange_', axis=1).columns
+    state_cols = X.filter(regex=f'^state_', axis=1).columns
+    country_cols = X.filter(regex=f'^country_', axis=1).columns
+    sector_cols = X.filter(regex=f'^sector_', axis=1).columns
+    industry_cols = X.filter(regex=f'^industry_', axis=1).columns
+    categorical_features = state_cols.tolist()+exchange_cols.tolist()+country_cols.tolist()+sector_cols.tolist()+industry_cols.tolist()+['gives_dividend']
+
+    scaler_vertical = MinMaxScaler()
+
+    X_categorical = X[categorical_features]
+    X[profit_features] = X[profit_features].div(X['mean_price'], axis=0)
+    X = X.drop(columns=categorical_features, axis=1)
+    X_scaled_normalized = pd.DataFrame(scaler_vertical.fit_transform(X), columns=X.columns, index=X.index)
+    X_test = pd.concat([X_scaled_normalized, X_categorical], axis=1)
+    return pd.concat([training_data[labels], X_test], axis=1)
+
 def grid_search(X_train, Y_train, labels):
     regression_models = []
     random_forest_models = []
@@ -20,7 +42,7 @@ def grid_search(X_train, Y_train, labels):
 
     # Specified each combination because lbfgs cannot be paired with L1 norm and liblinear cannot be paired with penalty None
     regression_model_param_grid = [
-        {'solver': ['liblinear'], 'penalty': ['l1'], 'C': [0.1]}
+        {'solver': ['liblinear'], 'penalty': ['l1'], 'C': [0.1]},
         {'solver': ['liblinear'], 'penalty': ['l1'], 'C': [1.0]},
         {'solver': ['liblinear'], 'penalty': ['l1'], 'C': [10.0]},
         {'solver': ['liblinear'], 'penalty': ['l2'], 'C': [0.1]},
@@ -80,7 +102,7 @@ def save_model_params(labels, regression_models, random_forest_models, svm_model
     params['regression'] = regression_models
     params['random forest'] = random_forest_models
     params['svm'] = svm_models
-    params.to_csv(f'{tables_dir_name}/hyperparameters_{file_name}.txt', mode='a', header=True, index=False)
+    params.to_csv(f'{tables_dir_name}/hyperparameters_{file_name}.csv', mode='a', header=True, index=False)
     return
 
 def get_model_scores(Y_test, y_pred):
@@ -155,7 +177,7 @@ def create_and_save_feature_importance_plots(X_test, Y_test, labels, models, tab
 
         importance_df = importance_df.drop(state_cols.tolist()+exchange_cols.tolist()+country_cols.tolist()+sector_cols.tolist()+industry_cols.tolist(), axis=1)
         importance_df = importance_df.T.reset_index()
-        
+
         plt.barh(importance_df['Feature'], importance_df['Importance'])
         plt.yticks(importance_df['Feature'], rotation=45, fontsize=5)
         plt.title(f'Feature Importance for label: {labels[i]} ({model_name})')

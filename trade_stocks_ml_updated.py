@@ -22,7 +22,7 @@ from pathlib import Path
 from statistics import mean
 import dataframe_image as dfi
 from ast import literal_eval
-from ml_helper_functions import run_ml_models
+from ml_helper_functions import run_ml_models, normalize_data
 
 with open('./input.yaml', 'rb') as f:
     params = yaml.safe_load(f.read())
@@ -191,5 +191,22 @@ testing_data = training_data_t2[labels].merge(training_data_t1.drop(labels, axis
 training_data_hourly = training_data_hourly_t1[['hour']+labels].merge(training_data_hourly_t0.drop(labels, axis=1), how='left', right_on=['symbol','hour'], left_on=['symbol','hour'])
 testing_data_hourly = training_data_hourly_t2[['hour']+labels].merge(training_data_hourly_t1.drop(labels, axis=1), how='left', right_on=['symbol','hour'], left_on=['symbol','hour'])
 
-run_ml_models(training_data, testing_data, labels, tables_dir_name)
-run_ml_models(training_data_hourly, testing_data_hourly, labels, tables_dir_name, 'hourly')
+# Normalize and scale features
+normalized_training_data = normalize_data(training_data, labels)
+normalized_testing_data = normalize_data(testing_data, labels)
+normalized_training_data_hourly = normalize_data(training_data_hourly, labels)
+normalized_testing_data_hourly = normalize_data(testing_data_hourly, labels)
+
+# save original and normalized training data
+training_data.to_csv(f'{tables_dir_name}/unscaled_training_data.csv', mode='a', header=True, index=False)
+testing_data.to_csv(f'{tables_dir_name}/unscaled_testing_data.csv', mode='a', header=True, index=False)
+training_data_hourly.to_csv(f'{tables_dir_name}/unscaled_training_data_hourly.csv', mode='a', header=True, index=False)
+testing_data_hourly.to_csv(f'{tables_dir_name}/unscaled_testing_data_hourly.csv', mode='a', header=True, index=False)
+
+normalized_training_data.to_csv(f'{tables_dir_name}/normalized_training_data.csv', mode='a', header=True, index=False)
+normalized_testing_data.to_csv(f'{tables_dir_name}/normalized_testing_data.csv', mode='a', header=True, index=False)
+normalized_training_data_hourly.to_csv(f'{tables_dir_name}/normalized_training_data_hourly.csv', mode='a', header=True, index=False)
+normalized_testing_data_hourly.to_csv(f'{tables_dir_name}/normalized_testing_data_hourly.csv', mode='a', header=True, index=False)
+
+run_ml_models(normalized_training_data, normalized_testing_data, labels, tables_dir_name)
+run_ml_models(normalized_training_data_hourly, normalized_testing_data_hourly, labels, tables_dir_name, 'hourly')
