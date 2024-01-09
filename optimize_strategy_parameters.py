@@ -26,9 +26,9 @@ def custom_profit_scorer(raw_data, key, params):
 
     trade_strategy_signals = strategy_functions[key]
     trade_signals = format_trade_signals(trade_strategy_signals)
-    total_profits_signal, percent_change_signal = determine_profits(trade_signals['buy'].shift(1), trade_signals['sell'])
+    total_profits_signal, returns_signal = determine_profits(trade_signals['buy'].shift(1), trade_signals['sell'])
 
-    return total_profits_signal
+    return returns_signal
 
 
 def optimize_parameters(raw_data, key, parameter_grid):

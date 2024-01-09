@@ -8,13 +8,6 @@ import yfinance as yf
 from datetime import datetime, timezone, date, timedelta
 from generate_training_data_ml import get_stock_symbols, generate_and_save_training_data, format_training_data, get_company_data, save_company_data, get_income_statement_data, generate_training_data
 import requests
-import sklearn
-from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import GridSearchCV
-from sklearn.impute import SimpleImputer
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-from sklearn import svm
 import time
 import csv
 import pytz
@@ -58,6 +51,8 @@ col_names=(['symbol','baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'sto
             'mean_rever_is_prof', 'mean_rever_hourly_is_prof', 'rsi_is_prof', 'rsi_hourly_is_prof',
             'baseline_profits','sma_profits','sma_hourly_profits', 'stoch_profits', 'stoch_hourly_profits',
             'mean_rever_profits', 'mean_rever_hourly_profits', 'rsi_profits', 'rsi_hourly_profits',
+            'baseline_returns','sma_returns','sma_hourly_returns', 'stoch_returns', 'stoch_hourly_returns',
+            'mean_rever_returns', 'mean_rever_hourly_returns', 'rsi_returns', 'rsi_hourly_returns',
             'baseline_total_trades','sma_total_trades','sma_hourly_total_trades', 'stoch_total_trades', 'stoch_hourly_total_trades',
             'mean_rever_total_trades', 'mean_rever_hourly_total_trades', 'rsi_total_trades', 'rsi_hourly_total_trades',
             'mean_price','std_dev', 'low', 'high', 'best_strategy'
@@ -67,6 +62,8 @@ col_names_hourly=(['symbol','hour','baseline_is_prof','sma_is_prof','sma_hourly_
             'mean_rever_is_prof', 'mean_rever_hourly_is_prof', 'rsi_is_prof', 'rsi_hourly_is_prof',
             'baseline_profits','sma_profits','sma_hourly_profits', 'stoch_profits', 'stoch_hourly_profits',
             'mean_rever_profits', 'mean_rever_hourly_profits', 'rsi_profits', 'rsi_hourly_profits',
+            'baseline_returns','sma_returns','sma_hourly_returns', 'stoch_returns', 'stoch_hourly_returns',
+            'mean_rever_returns', 'mean_rever_hourly_returns', 'rsi_returns', 'rsi_hourly_returns',
             'baseline_total_trades','sma_total_trades','sma_hourly_total_trades', 'stoch_total_trades', 'stoch_hourly_total_trades',
             'mean_rever_total_trades', 'mean_rever_hourly_total_trades', 'rsi_total_trades', 'rsi_hourly_total_trades',
             'mean_price', 'std_dev', 'low', 'high', 'best_strategy'
@@ -121,6 +118,22 @@ data_files = {
     't3': [raw_data_t3, file_name_t3, file_name_hourly_t3]
 }
 
+t0_start_date = datetime(year-1, 7, 1)
+t0_end_date = datetime(year-1, 12, 31).replace(hour=17, minute=0, second=0, microsecond=0, tzinfo = est)
+t1_start_date = datetime(year, 1, 1)
+t1_end_date = datetime(year, 6, 30).replace(hour=17, minute=0, second=0, microsecond=0, tzinfo = est)
+t2_start_date = datetime(year, 7, 1)
+t2_end_date = datetime(year, 12, 31).replace(hour=17, minute=0, second=0, microsecond=0, tzinfo = est)
+t3_start_date = datetime(year+1, 1, 1)
+t3_end_date = datetime(year+1, 6, 30).replace(hour=17, minute=0, second=0, microsecond=0, tzinfo = est)
+
+time_period_dates = {
+    't0': {'start': t0_start_date, 'end': t0_end_date},
+    't1': {'start': t1_start_date, 'end': t1_end_date},
+    't2': {'start': t2_start_date, 'end': t2_end_date},
+    't3': {'start': t3_start_date, 'end': t3_end_date}
+}
+
 for time_period in data_files:
     print(f'Getting data for {time_period}')
     data = pd.read_csv(data_files[time_period][0])
@@ -130,19 +143,10 @@ for time_period in data_files:
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         df = df[(df['timestamp'].dt.tz_convert(est).dt.time >= start_of_trading_day) & (df['timestamp'].dt.tz_convert(est).dt.time <= end_of_trading_day)]
         df.index = df['timestamp']
-        generate_training_data(df, symbol, strategy_parameters, data_files[time_period][1], data_files[time_period][2], col_names, col_names_hourly)
+        generate_training_data(df, symbol, time_period_dates[time_period]['start'], strategy_parameters, data_files[time_period][1], data_files[time_period][2], col_names, col_names_hourly)
 
 labels = ['baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'stoch_is_prof', 'stoch_hourly_is_prof',
             'mean_rever_is_prof', 'mean_rever_hourly_is_prof', 'rsi_is_prof', 'rsi_hourly_is_prof', 'best_strategy']
-
-t0_start_date = datetime(year-1, 7, 1)
-t0_end_date = datetime(year-1, 12, 31).replace(hour=17, minute=0, second=0, microsecond=0, tzinfo = est)
-t1_start_date = datetime(year, 1, 1)
-t1_end_date = datetime(year, 6, 30).replace(hour=17, minute=0, second=0, microsecond=0, tzinfo = est)
-t2_start_date = datetime(year, 7, 1)
-t2_end_date = datetime(year, 12, 31).replace(hour=17, minute=0, second=0, microsecond=0, tzinfo = est)
-t3_start_date = datetime(year+1, 1, 1)
-t3_end_date = datetime(year+1, 6, 30).replace(hour=17, minute=0, second=0, microsecond=0, tzinfo = est)
 
 # Company data and reports
 company_data = pd.read_csv(company_data_file)
@@ -155,11 +159,27 @@ profitable_strategies_t1 = pd.read_csv(file_name_t1)
 profitable_strategies_t2 = pd.read_csv(file_name_t2)
 profitable_strategies_t3 = pd.read_csv(file_name_t3)
 
+extra_t0 = list(set(profitable_strategies_t0['symbol'].tolist()) - set(profitable_strategies_t1['symbol'].tolist())) + list(set(profitable_strategies_t0['symbol'].tolist()) - set(profitable_strategies_t2['symbol'].tolist()))
+extra_t1 = list(set(profitable_strategies_t1['symbol'].tolist()) - set(profitable_strategies_t0['symbol'].tolist())) + list(set(profitable_strategies_t1['symbol'].tolist()) - set(profitable_strategies_t2['symbol'].tolist()))
+extra_t2 = list(set(profitable_strategies_t2['symbol'].tolist()) - set(profitable_strategies_t0['symbol'].tolist())) + list(set(profitable_strategies_t2['symbol'].tolist()) - set(profitable_strategies_t1['symbol'].tolist()))
+
+profitable_strategies_t0 = profitable_strategies_t0[~profitable_strategies_t0['symbol'].isin(extra_t0)]
+profitable_strategies_t1 = profitable_strategies_t1[~profitable_strategies_t1['symbol'].isin(extra_t1)]
+profitable_strategies_t2 = profitable_strategies_t2[~profitable_strategies_t2['symbol'].isin(extra_t2)]
+
 # profitable strategies per hour per stock
 profitable_strategies_hourly_t0 = pd.read_csv(file_name_hourly_t0)
 profitable_strategies_hourly_t1 = pd.read_csv(file_name_hourly_t1)
 profitable_strategies_hourly_t2 = pd.read_csv(file_name_hourly_t2)
 profitable_strategies_hourly_t3 = pd.read_csv(file_name_hourly_t3)
+
+extra_t0_hourly = list(set(profitable_strategies_hourly_t0['symbol'].tolist()) - set(profitable_strategies_hourly_t1['symbol'].tolist())) + list(set(profitable_strategies_hourly_t0['symbol'].tolist()) - set(profitable_strategies_hourly_t2['symbol'].tolist()))
+extra_t1_hourly = list(set(profitable_strategies_hourly_t1['symbol'].tolist()) - set(profitable_strategies_hourly_t0['symbol'].tolist())) + list(set(profitable_strategies_hourly_t1['symbol'].tolist()) - set(profitable_strategies_hourly_t2['symbol'].tolist()))
+extra_t2_hourly = list(set(profitable_strategies_hourly_t2['symbol'].tolist()) - set(profitable_strategies_hourly_t0['symbol'].tolist())) + list(set(profitable_strategies_hourly_t2['symbol'].tolist()) - set(profitable_strategies_hourly_t1['symbol'].tolist()))
+
+profitable_strategies_hourly_t0 = profitable_strategies_hourly_t0[~profitable_strategies_hourly_t0['symbol'].isin(extra_t0_hourly)]
+profitable_strategies_hourly_t1 = profitable_strategies_hourly_t1[~profitable_strategies_hourly_t1['symbol'].isin(extra_t1_hourly)]
+profitable_strategies_hourly_t2 = profitable_strategies_hourly_t2[~profitable_strategies_hourly_t2['symbol'].isin(extra_t2_hourly)]
 
 quarterly_reports_df = quarterly_reports[['fiscalDateEnding', 'symbol', 'totalRevenue', 'ebitda', 'ebit']]
 quarterly_reports_df[['totalRevenue', 'ebitda', 'ebit']] = quarterly_reports_df[['totalRevenue', 'ebitda', 'ebit']].apply(pd.to_numeric, errors='coerce')
@@ -197,6 +217,24 @@ normalized_testing_data = normalize_data(testing_data, labels)
 normalized_training_data_hourly = normalize_data(training_data_hourly, labels)
 normalized_testing_data_hourly = normalize_data(testing_data_hourly, labels)
 
+thresh = 5
+non_zero_count = (normalized_training_data != 0).sum()
+filtered_columns = non_zero_count[non_zero_count > thresh].index
+filtered_normalized_training_data = normalized_training_data[filtered_columns]
+
+non_zero_count = (normalized_testing_data != 0).sum()
+filtered_columns = non_zero_count[non_zero_count > thresh].index
+filtered_normalized_testing_data = normalized_testing_data[filtered_columns]
+
+thresh = 10
+non_zero_count = (normalized_training_data_hourly != 0).sum()
+filtered_columns = non_zero_count[non_zero_count > thresh].index
+filtered_normalized_training_data_hourly = normalized_training_data_hourly[filtered_columns]
+
+non_zero_count = (normalized_testing_data_hourly != 0).sum()
+filtered_columns = non_zero_count[non_zero_count > thresh].index
+filtered_normalized_testing_data_hourly = normalized_testing_data_hourly[filtered_columns]
+
 # save original and normalized training data
 training_data.to_csv(f'{tables_dir_name}/unscaled_training_data.csv', mode='a', header=True, index=False)
 testing_data.to_csv(f'{tables_dir_name}/unscaled_testing_data.csv', mode='a', header=True, index=False)
@@ -208,5 +246,5 @@ normalized_testing_data.to_csv(f'{tables_dir_name}/normalized_testing_data.csv',
 normalized_training_data_hourly.to_csv(f'{tables_dir_name}/normalized_training_data_hourly.csv', mode='a', header=True, index=False)
 normalized_testing_data_hourly.to_csv(f'{tables_dir_name}/normalized_testing_data_hourly.csv', mode='a', header=True, index=False)
 
-run_ml_models(normalized_training_data, normalized_testing_data, labels, tables_dir_name)
-run_ml_models(normalized_training_data_hourly, normalized_testing_data_hourly, labels, tables_dir_name, 'hourly')
+run_ml_models(filtered_normalized_training_data, filtered_normalized_testing_data, labels, tables_dir_name)
+run_ml_models(filtered_normalized_training_data_hourly, filtered_normalized_testing_data_hourly, labels, tables_dir_name, 'hourly')
