@@ -499,7 +499,7 @@ def generate_training_data(df, stock_symbol, start_date, strategy_parameters, fi
     cols_to_include = ['baseline_returns', 'sma_returns', 'sma_hourly_returns', 'stoch_returns', 'stoch_hourly_returns', 'mean_rever_returns', 'mean_rever_hourly_returns', 'rsi_returns', 'rsi_hourly_returns']
     hourly_df['best_strategy'] = hourly_df[cols_to_include].idxmax(axis='columns')
     hourly_df['best_strategy'] = hourly_df['best_strategy'].apply(lambda x: x.split('_returns')[0])
-    pdb.set_trace()
+
     # save is_profitable, profits, total trades, best strategy
     with open(file_name_1, 'a') as f:
         writer = csv.writer(f)
