@@ -157,22 +157,30 @@ def format_training_data(profitable_strategies, company_data, quarterly_reports_
 
     return training_data
 
-def format_data(trade_signals, is_profitable, total_profits, returns, total_trades, hourly_df, strategy):
-    total_profits_signal, percent_change_signal = determine_profits(trade_signals['buy'].shift(1), trade_signals['sell'])
-    is_profitable.append(int(total_profits_signal > 0))
+def format_data(trade_signals, is_profitable, total_profits, returns, total_buys, total_sells, hourly_df, strategy):
+    total_profits_signal, returns_signal = determine_profits(trade_signals['buy'].shift(1), trade_signals['sell'])
+    is_profitable.append(int(returns_signal > 0))
     total_profits.append(total_profits_signal)
-    returns.append(percent_change_signal)
-    total_trades.append(get_total_trades(trade_signals))
+    returns.append(returns_signal)
+    buy_counts, sell_counts = get_total_trades(trade_signals)
+    total_buys.append(buy_counts)
+    total_sells.append(sell_counts)
     buy_counts, sell_counts = get_total_trades_per_hour(trade_signals)
-    hourly_df[f'{strategy}_total_trades'] = buy_counts + sell_counts
+    hourly_df[f'{strategy}_total_sells'] = sell_counts
+    hourly_df[f'{strategy}_total_buys'] = buy_counts
     hourly_profits = get_total_profits_per_hour(trade_signals['buy'].shift(1), trade_signals['sell'])
     hourly_returns = get_total_returns_per_hour(trade_signals['buy'].shift(1), trade_signals['sell'])
     hourly_df[f'{strategy}_profits'] = hourly_profits
     hourly_df[f'{strategy}_returns'] = hourly_returns
     hourly_df[f'{strategy}_is_prof'] = (hourly_returns > 0).astype(int)
-    # hourly_df[f'{strategy}_is_prof'] = (hourly_profits > 0).astype(int)
 
-    return total_profits_signal, percent_change_signal
+    hourly_profits_buys = get_total_profits_per_hour(trade_signals['buy'], trade_signals['sell'].shift(-1))
+    hourly_returns_buys = get_total_returns_per_hour(trade_signals['buy'], trade_signals['sell'].shift(-1))
+    hourly_df[f'{strategy}_profits_buy'] = hourly_profits_buys
+    hourly_df[f'{strategy}_returns_buy'] = hourly_returns_buys
+    hourly_df[f'{strategy}_is_prof_buy'] = (hourly_returns_buys > 0).astype(int)
+
+    return total_profits_signal, returns_signal
 
 def get_stock_symbols(n, file, list=False):
     # symbol_df = pd.read_csv('./stock_lists/stock_symbols.csv', error_bad_lines=False)
@@ -273,7 +281,7 @@ def generate_and_save_training_data(stock_symbols, data_client, start_date, end_
         baseline_buy_signal = format_trade_signals(baseline_buy_signal, True)
         baseline_sell_signal = format_trade_signals(baseline_sell_signal, True)
         total_profits_baseline, percent_change_baseline = determine_profits(baseline_buy_signal["close"], baseline_sell_signal["close"])
-        is_profitable.append(int(total_profits_baseline > 0))
+        is_profitable.append(int(percent_change_baseline > 0))
         total_profits.append(total_profits_baseline)
         total_trades.append(get_total_trades(baseline_buy_signal, True) + get_total_trades(baseline_sell_signal, True))
         hourly_profits = get_total_profits_per_hour(baseline_buy_signal, baseline_sell_signal, True)
@@ -299,12 +307,12 @@ def generate_and_save_training_data(stock_symbols, data_client, start_date, end_
         if not Path(file_name_1).exists():
             with open(file_name_1, 'a') as f:
                 writer = csv.writer(f)
-                writer.writerow(col_names) # + company_data.columns.tolist()
+                writer.writerow(col_names)
 
         if not Path(file_name_2).exists():
             with open(file_name_2, 'a') as f:
                 writer = csv.writer(f)
-                writer.writerow(col_names_hourly) # + company_data.columns.tolist()
+                writer.writerow(col_names_hourly)
 
         # Summary Statistics
         mean_price = df.mean()['close']
@@ -405,7 +413,8 @@ def generate_training_data(df, stock_symbol, start_date, strategy_parameters, fi
     print(f'Getting data for {stock_symbol}')
     is_profitable = []
     total_profits = []
-    total_trades = []
+    total_buys = []
+    total_sells = []
     returns = []
     profitable_strategies = {}
     best_strategies = {}
@@ -419,6 +428,12 @@ def generate_training_data(df, stock_symbol, start_date, strategy_parameters, fi
 
     # Baseline- purely time based
     baseline_buy_signal, baseline_sell_signal = get_baseline_signals(df)
+    baseline_buy_signal['signal'] = 1
+    baseline_sell_signal['signal'] = 0
+    baseline_buy_signal['buy'] = baseline_buy_signal['close']
+    baseline_sell_signal['sell'] = baseline_sell_signal['close']
+    baseline_signal = pd.concat([baseline_buy_signal[['close', 'signal', 'buy']], baseline_sell_signal[['close', 'signal', 'sell']]]).sort_values(by='timestamp')
+    baseline_signal['timestamp'] = baseline_signal.index
 
     # SMA Crossover
     crossover_signal = get_sma_crossover_signal(df, start_date, strategy_parameters['sma']['short_time_period'], strategy_parameters['sma']['long_time_period'])
@@ -436,32 +451,15 @@ def generate_training_data(df, stock_symbol, start_date, strategy_parameters, fi
     rsi_signal = get_rsi_signal(df, start_date, f'{strategy_parameters["rsi"]["time_period"]}D', 30, 70)
     rsi_signal_hourly = get_hourly_rsi_signal(df, start_date, f'{strategy_parameters["rsi_hourly"]["time_period"]}D', 30, 70)
 
-    # Compute profits from all methods
-    baseline_buy_signal = format_trade_signals(baseline_buy_signal, True)
-    baseline_sell_signal = format_trade_signals(baseline_sell_signal, True)
-    total_profits_baseline, returns_baseline = determine_profits(baseline_buy_signal["close"], baseline_sell_signal["close"])
-    is_profitable.append(int(total_profits_baseline > 0))
-    total_profits.append(total_profits_baseline)
-    returns.append(returns_baseline)
-    total_trades.append(get_total_trades(baseline_buy_signal, True) + get_total_trades(baseline_sell_signal, True))
-    hourly_profits = get_total_profits_per_hour(baseline_buy_signal, baseline_sell_signal, True)
-    hourly_df['baseline_profits'] = hourly_profits
-    # hourly_df['baseline_is_prof'] = (hourly_profits > 0).astype(int)
-    hourly_returns = get_total_returns_per_hour(baseline_buy_signal, baseline_sell_signal, True)
-    hourly_df['baseline_returns'] = hourly_returns
-    hourly_df['baseline_is_prof'] = (hourly_returns > 0).astype(int)
-
-    trade_counts = get_total_trades_per_hour(baseline_buy_signal, baseline_sell_signal, True)
-    hourly_df['baseline_total_trades'] = trade_counts
-
-    total_profits_crossover, returns_crossover = format_data(format_trade_signals(crossover_signal), is_profitable, total_profits, returns, total_trades, hourly_df, 'sma')
-    total_profits_crossover_hourly, returns_crossover_hourly = format_data(format_trade_signals(hourly_mean_crossover_signal), is_profitable, total_profits, returns, total_trades, hourly_df, 'sma_hourly')
-    total_profits_stoch, returns_stoch = format_data(format_trade_signals(slow_stochastic_oscillator), is_profitable, total_profits, returns, total_trades, hourly_df, 'stoch')
-    total_profits_stoch_hourly, returns_stoch_hourly = format_data(format_trade_signals(slow_stochastic_oscillator_hourly), is_profitable, total_profits, returns, total_trades, hourly_df, 'stoch_hourly')
-    total_profits_mean_reversion, returns_mean_reversion = format_data(format_trade_signals(mean_reversion_signal), is_profitable, total_profits, returns, total_trades, hourly_df, 'mean_rever')
-    total_profits_mean_reversion_hourly, returns_mean_reversion_hourly = format_data(format_trade_signals(mean_reversion_signal_hourly), is_profitable, total_profits, returns, total_trades, hourly_df, 'mean_rever_hourly')
-    total_profits_rsi, returns_rsi = format_data(format_trade_signals(rsi_signal), is_profitable, total_profits, returns, total_trades, hourly_df, 'rsi')
-    total_profits_rsi_hourly, returns_rsi_hourly = format_data(format_trade_signals(rsi_signal_hourly), is_profitable, total_profits, returns, total_trades, hourly_df, 'rsi_hourly')
+    total_profits_baseline, returns_baseline = format_data(format_trade_signals(baseline_signal), is_profitable, total_profits, returns, total_buys, total_sells, hourly_df, 'baseline')
+    total_profits_crossover, returns_crossover = format_data(format_trade_signals(crossover_signal), is_profitable, total_profits, returns, total_buys, total_sells, hourly_df, 'sma')
+    total_profits_crossover_hourly, returns_crossover_hourly = format_data(format_trade_signals(hourly_mean_crossover_signal), is_profitable, total_profits, returns, total_buys, total_sells, hourly_df, 'sma_hourly')
+    total_profits_stoch, returns_stoch = format_data(format_trade_signals(slow_stochastic_oscillator), is_profitable, total_profits, returns, total_buys, total_sells, hourly_df, 'stoch')
+    total_profits_stoch_hourly, returns_stoch_hourly = format_data(format_trade_signals(slow_stochastic_oscillator_hourly), is_profitable, total_profits, returns, total_buys, total_sells, hourly_df, 'stoch_hourly')
+    total_profits_mean_reversion, returns_mean_reversion = format_data(format_trade_signals(mean_reversion_signal), is_profitable, total_profits, returns, total_buys, total_sells, hourly_df, 'mean_rever')
+    total_profits_mean_reversion_hourly, returns_mean_reversion_hourly = format_data(format_trade_signals(mean_reversion_signal_hourly), is_profitable, total_profits, returns, total_buys, total_sells, hourly_df, 'mean_rever_hourly')
+    total_profits_rsi, returns_rsi = format_data(format_trade_signals(rsi_signal), is_profitable, total_profits, returns, total_buys, total_sells, hourly_df, 'rsi')
+    total_profits_rsi_hourly, returns_rsi_hourly = format_data(format_trade_signals(rsi_signal_hourly), is_profitable, total_profits, returns, total_buys, total_sells, hourly_df, 'rsi_hourly')
 
     profitable_strategies[stock_symbol] = is_profitable
 
@@ -495,18 +493,22 @@ def generate_training_data(df, stock_symbol, start_date, strategy_parameters, fi
     hourly_df['low'] = df.groupby(df.index.tz_convert(est).hour)['low'].min()
     hourly_df['high'] = df.groupby(df.index.tz_convert(est).hour)['high'].max()
 
-    # get best strategy per hour
+    # get best strategy per hour for buying
+    cols_to_include = ['baseline_returns_buy', 'sma_returns_buy', 'sma_hourly_returns_buy', 'stoch_returns_buy', 'stoch_hourly_returns_buy', 'mean_rever_returns_buy', 'mean_rever_hourly_returns_buy', 'rsi_returns_buy', 'rsi_hourly_returns_buy']
+    hourly_df['best_strategy_buy'] = hourly_df[cols_to_include].idxmax(axis='columns')
+    hourly_df['best_strategy_buy'] = hourly_df['best_strategy_buy'].apply(lambda x: x.split('_returns_buy')[0])
+
+    # get best strategy per hour for selling
     cols_to_include = ['baseline_returns', 'sma_returns', 'sma_hourly_returns', 'stoch_returns', 'stoch_hourly_returns', 'mean_rever_returns', 'mean_rever_hourly_returns', 'rsi_returns', 'rsi_hourly_returns']
-    hourly_df['best_strategy'] = hourly_df[cols_to_include].idxmax(axis='columns')
-    hourly_df['best_strategy'] = hourly_df['best_strategy'].apply(lambda x: x.split('_returns')[0])
+    hourly_df['best_strategy_sell'] = hourly_df[cols_to_include].idxmax(axis='columns')
+    hourly_df['best_strategy_sell'] = hourly_df['best_strategy_sell'].apply(lambda x: x.split('_returns')[0])
 
     # save is_profitable, profits, total trades, best strategy
     with open(file_name_1, 'a') as f:
         writer = csv.writer(f)
-        writer.writerow([stock_symbol] + is_profitable + total_profits + returns + total_trades + [mean_price, std_dev, low, high]+ [best_strategy]) # + company_data.values.tolist()[0]
+        writer.writerow([stock_symbol] + is_profitable + total_profits + returns + total_buys + total_sells + [mean_price, std_dev, low, high]+ [best_strategy]) # + company_data.values.tolist()[0]
 
-    hourly_df = hourly_df[col_names_hourly] # +company_data.columns.tolist() .fillna(0)
-    # hourly_df = hourly_df.fillna(0)
+    hourly_df = hourly_df[col_names_hourly]
     hourly_df.to_csv(file_name_2, mode='a', header=False, index=False)
 
     return profitable_strategies, best_strategies

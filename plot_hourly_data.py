@@ -107,3 +107,27 @@ def plot_hourly_profits(stock_symbol, hourly_profits, methods, year, dir_name, f
     if file_name:
         plt.savefig(file_name, bbox_inches='tight')
         plt.close()
+
+def plot_hourly_returns(stock_symbol, hourly_profits, methods, year, dir_name, file_type='png', show_plot: bool = False):
+    plt.xlabel('Hour (EST)')
+    plt.ylabel('Returns per hour (%)')
+    hour_labels = [f"{hour % 12} AM" if hour < 12 else f"{hour % 12 if hour > 12 else hour} PM" for hour in range(9, 18)]
+    plt.xticks(range(9, 18), hour_labels)# Save or show figure
+    plt.title(f'Stock: {stock_symbol} | {year} | Total profits per hour')
+    file_name=f"{dir_name}/{stock_symbol}_{year}_hourly_profits.{file_type}"
+    colors = ['grey','red', 'cornflowerblue', 'darkorange', 'green', 'violet', 'gold', 'pink', 'chocolate']
+
+    if isinstance(hourly_profits, list):
+        for i, hp in enumerate(hourly_profits):
+            plt.bar(hp.index+0.1*i, hp.values, width=0.1, label=f'{methods[i]}', align='center', alpha=0.7, color=colors[i])
+    else:
+        plt.bar(hourly_profits.index, hourly_profits.values)
+    plt.legend(loc='best', fontsize=5)
+
+    # Save or show figure
+    if show_plot:
+        plt.show()
+
+    if file_name:
+        plt.savefig(file_name, bbox_inches='tight')
+        plt.close()

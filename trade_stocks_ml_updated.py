@@ -43,6 +43,7 @@ file_name_hourly_t0 = f'{training_data_dir}/stock_strategy_data_hourly_t0.csv'
 file_name_hourly_t1 = f'{training_data_dir}/stock_strategy_data_hourly_t1.csv'
 file_name_hourly_t2 = f'{training_data_dir}/stock_strategy_data_hourly_t2.csv'
 file_name_hourly_t3 = f'{training_data_dir}/stock_strategy_data_hourly_t3.csv'
+
 company_data_file = f'{training_data_dir}/company_data.csv'
 annual_report_file = f'{training_data_dir}/annual_reports.csv'
 quarterly_report_file = f'{training_data_dir}/quarterly_reports.csv'
@@ -53,20 +54,30 @@ col_names=(['symbol','baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'sto
             'mean_rever_profits', 'mean_rever_hourly_profits', 'rsi_profits', 'rsi_hourly_profits',
             'baseline_returns','sma_returns','sma_hourly_returns', 'stoch_returns', 'stoch_hourly_returns',
             'mean_rever_returns', 'mean_rever_hourly_returns', 'rsi_returns', 'rsi_hourly_returns',
-            'baseline_total_trades','sma_total_trades','sma_hourly_total_trades', 'stoch_total_trades', 'stoch_hourly_total_trades',
-            'mean_rever_total_trades', 'mean_rever_hourly_total_trades', 'rsi_total_trades', 'rsi_hourly_total_trades',
+            'baseline_total_buys','sma_total_buys','sma_hourly_total_buys', 'stoch_total_buys', 'stoch_hourly_total_buys',
+            'mean_rever_total_buys', 'mean_rever_hourly_total_buys', 'rsi_total_buys', 'rsi_hourly_total_buys',
+            'baseline_total_sells','sma_total_sells','sma_hourly_total_sells', 'stoch_total_sells', 'stoch_hourly_total_sells',
+            'mean_rever_total_sells', 'mean_rever_hourly_total_sells', 'rsi_total_sells', 'rsi_hourly_total_sells',
             'mean_price','std_dev', 'low', 'high', 'best_strategy'
 ])
 
 col_names_hourly=(['symbol','hour','baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'stoch_is_prof', 'stoch_hourly_is_prof',
             'mean_rever_is_prof', 'mean_rever_hourly_is_prof', 'rsi_is_prof', 'rsi_hourly_is_prof',
+            'baseline_is_prof_buy','sma_is_prof_buy','sma_hourly_is_prof_buy', 'stoch_is_prof_buy', 'stoch_hourly_is_prof_buy',
+            'mean_rever_is_prof_buy', 'mean_rever_hourly_is_prof_buy', 'rsi_is_prof_buy', 'rsi_hourly_is_prof_buy',
             'baseline_profits','sma_profits','sma_hourly_profits', 'stoch_profits', 'stoch_hourly_profits',
             'mean_rever_profits', 'mean_rever_hourly_profits', 'rsi_profits', 'rsi_hourly_profits',
+            'baseline_profits_buy','sma_profits_buy','sma_hourly_profits_buy', 'stoch_profits_buy', 'stoch_hourly_profits_buy',
+            'mean_rever_profits_buy', 'mean_rever_hourly_profits_buy', 'rsi_profits_buy', 'rsi_hourly_profits_buy',
             'baseline_returns','sma_returns','sma_hourly_returns', 'stoch_returns', 'stoch_hourly_returns',
             'mean_rever_returns', 'mean_rever_hourly_returns', 'rsi_returns', 'rsi_hourly_returns',
-            'baseline_total_trades','sma_total_trades','sma_hourly_total_trades', 'stoch_total_trades', 'stoch_hourly_total_trades',
-            'mean_rever_total_trades', 'mean_rever_hourly_total_trades', 'rsi_total_trades', 'rsi_hourly_total_trades',
-            'mean_price', 'std_dev', 'low', 'high', 'best_strategy'
+            'baseline_returns_buy','sma_returns_buy','sma_hourly_returns_buy', 'stoch_returns_buy', 'stoch_hourly_returns_buy',
+            'mean_rever_returns_buy', 'mean_rever_hourly_returns_buy', 'rsi_returns_buy', 'rsi_hourly_returns_buy',
+            'baseline_total_sells','sma_total_sells','sma_hourly_total_sells', 'stoch_total_sells', 'stoch_hourly_total_sells',
+            'mean_rever_total_sells', 'mean_rever_hourly_total_sells', 'rsi_total_sells', 'rsi_hourly_total_sells',
+            'baseline_total_buys','sma_total_buys','sma_hourly_total_buys', 'stoch_total_buys', 'stoch_hourly_total_buys',
+            'mean_rever_total_buys', 'mean_rever_hourly_total_buys', 'rsi_total_buys', 'rsi_hourly_total_buys',
+            'mean_price', 'std_dev', 'low', 'high', 'best_strategy_sell', 'best_strategy_buy'
 ])
 
 data_client = StockHistoricalDataClient(API_KEY, SECRET_KEY)
@@ -134,6 +145,7 @@ time_period_dates = {
     't3': {'start': t3_start_date, 'end': t3_end_date}
 }
 
+start = time.time()
 for time_period in data_files:
     print(f'Getting data for {time_period}')
     data = pd.read_csv(data_files[time_period][0])
@@ -144,9 +156,16 @@ for time_period in data_files:
         df = df[(df['timestamp'].dt.tz_convert(est).dt.time >= start_of_trading_day) & (df['timestamp'].dt.tz_convert(est).dt.time <= end_of_trading_day)]
         df.index = df['timestamp']
         generate_training_data(df, symbol, time_period_dates[time_period]['start'], strategy_parameters, data_files[time_period][1], data_files[time_period][2], col_names, col_names_hourly)
+end = time.time()
+print(f'Time to generate training data: {(end-start)/60} Minutes')
 
 labels = ['baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'stoch_is_prof', 'stoch_hourly_is_prof',
             'mean_rever_is_prof', 'mean_rever_hourly_is_prof', 'rsi_is_prof', 'rsi_hourly_is_prof', 'best_strategy']
+labels_hourly = ['baseline_is_prof','sma_is_prof','sma_hourly_is_prof', 'stoch_is_prof', 'stoch_hourly_is_prof',
+            'mean_rever_is_prof', 'mean_rever_hourly_is_prof', 'rsi_is_prof', 'rsi_hourly_is_prof',
+            'baseline_is_prof_buy','sma_is_prof_buy','sma_hourly_is_prof_buy', 'stoch_is_prof_buy', 'stoch_hourly_is_prof_buy',
+            'mean_rever_is_prof_buy', 'mean_rever_hourly_is_prof_buy', 'rsi_is_prof_buy', 'rsi_hourly_is_prof_buy',
+            'best_strategy_sell', 'best_strategy_buy']
 
 # Company data and reports
 company_data = pd.read_csv(company_data_file)
@@ -208,14 +227,14 @@ training_data_hourly_t3.set_index('symbol', inplace=True)
 training_data = training_data_t1[labels].merge(training_data_t0.drop(labels, axis=1), how='left', right_on='symbol', left_on='symbol')
 testing_data = training_data_t2[labels].merge(training_data_t1.drop(labels, axis=1), how='left', right_on='symbol', left_on='symbol')
 
-training_data_hourly = training_data_hourly_t1[['hour']+labels].merge(training_data_hourly_t0.drop(labels, axis=1), how='left', right_on=['symbol','hour'], left_on=['symbol','hour'])
-testing_data_hourly = training_data_hourly_t2[['hour']+labels].merge(training_data_hourly_t1.drop(labels, axis=1), how='left', right_on=['symbol','hour'], left_on=['symbol','hour'])
+training_data_hourly = training_data_hourly_t1[['hour']+labels_hourly].merge(training_data_hourly_t0.drop(labels_hourly, axis=1), how='left', right_on=['symbol','hour'], left_on=['symbol','hour'])
+testing_data_hourly = training_data_hourly_t2[['hour']+labels_hourly].merge(training_data_hourly_t1.drop(labels_hourly, axis=1), how='left', right_on=['symbol','hour'], left_on=['symbol','hour'])
 
 # Normalize and scale features
 normalized_training_data = normalize_data(training_data, labels)
 normalized_testing_data = normalize_data(testing_data, labels)
-normalized_training_data_hourly = normalize_data(training_data_hourly, labels)
-normalized_testing_data_hourly = normalize_data(testing_data_hourly, labels)
+normalized_training_data_hourly = normalize_data(training_data_hourly, labels_hourly)
+normalized_testing_data_hourly = normalize_data(testing_data_hourly, labels_hourly)
 
 thresh = 5
 non_zero_count = (normalized_training_data != 0).sum()
@@ -247,4 +266,4 @@ normalized_training_data_hourly.to_csv(f'{tables_dir_name}/normalized_training_d
 normalized_testing_data_hourly.to_csv(f'{tables_dir_name}/normalized_testing_data_hourly.csv', mode='a', header=True, index=False)
 
 run_ml_models(filtered_normalized_training_data, filtered_normalized_testing_data, labels, tables_dir_name)
-run_ml_models(filtered_normalized_training_data_hourly, filtered_normalized_testing_data_hourly, labels, tables_dir_name, 'hourly')
+run_ml_models(filtered_normalized_training_data_hourly, filtered_normalized_testing_data_hourly, labels_hourly, tables_dir_name, 'hourly')

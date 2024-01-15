@@ -14,24 +14,13 @@ def format_trade_signals(data, baseline=False):
 def determine_profits(buy_signal, sell_signal):
     price_differences = sell_signal - buy_signal
     total_profits = price_differences[price_differences.notna()].sum()
-
     rate_of_return = (1 + (price_differences / buy_signal)).prod() - 1
-
-    # percent_change = (total_profits/buy_signal.sum()) * 100
-    # percent_change = (total_profits / buy_signal.max()) * 100 # subtract money lost from buy signal max?
-    # print(f'total profits: {total_profits}')
-    # print(f'max buy price: {buy_signal.max()}')
-    # percent_change = (price_differences / buy_signal)
-    # total_percent_change = (percent_change.sum() + percent_change.prod()) * 100 # or just percent_change.prod() ?
-    # compound_pct_change = (1 + (percent_change / 100))
-    # total_percent_change = (compound_pct_change.prod() - 1) * 100
-
     return total_profits, rate_of_return
 
 def get_total_trades(trade_signal, baseline=False):
     if baseline:
         return trade_signal['close'].count()
-    return trade_signal['buy'].count() + trade_signal['sell'].count()
+    return trade_signal['buy'].count(), trade_signal['sell'].count()
 
 def get_total_trades_per_hour(trade_signal, trade_signal_2=None, baseline=False):
     est = pytz.timezone('US/Eastern')
