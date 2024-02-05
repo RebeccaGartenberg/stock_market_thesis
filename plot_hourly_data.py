@@ -1,9 +1,6 @@
 from plot_stock_data import plot
-from dates import month_number_to_name
 import pytz
 import matplotlib.pyplot as plt
-import numpy as np
-import matplotlib.dates as mdates
 import pandas as pd
 
 def plot_hourly_data(stock_symbol, year, time_axis, price_axis: list, dir_name, file_type='png', file_name=None, plot_type='Mean', error_bars=None, y_lim=[]):

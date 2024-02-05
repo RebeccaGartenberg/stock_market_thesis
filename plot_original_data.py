@@ -1,6 +1,5 @@
 from plot_stock_data import plot
 from dates import month_number_to_name
-import pytz
 import matplotlib.pyplot as plt
 
 def plot_original_data_day(stock_symbol, start_date, time_axis, price_axis, dir_name, file_type='png'):

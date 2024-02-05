@@ -1,18 +1,10 @@
 from alpaca.data.historical import StockHistoricalDataClient
 import yaml
-import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
-import yfinance as yf
-from datetime import datetime, timezone, date, timedelta
-from generate_training_data_ml import get_stock_symbols, generate_and_save_training_data, format_training_data, get_company_data, save_company_data, get_income_statement_data, generate_training_data
-import requests
+from datetime import datetime
+from generate_training_data_ml import format_training_data, generate_training_data
 import time
-import csv
 import pytz
-from pathlib import Path
-from statistics import mean
-import dataframe_image as dfi
 from ast import literal_eval
 from ml_helper_functions import run_ml_models, normalize_data
 

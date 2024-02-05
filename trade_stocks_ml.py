@@ -1,24 +1,15 @@
 from alpaca.data.historical import StockHistoricalDataClient
 import yaml
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
-import pdb
-import yfinance as yf
-from datetime import datetime, timezone, date, timedelta
-from generate_training_data_ml import get_stock_symbols, generate_and_save_training_data, format_training_data, get_company_data, save_company_data, get_income_statement_data
-import requests
-import sklearn
-from sklearn.linear_model import LinearRegression, LogisticRegression
+from datetime import datetime
+from generate_training_data_ml import get_stock_symbols, generate_and_save_training_data, format_training_data, save_company_data, get_income_statement_data
+from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn import svm
-import time
-import csv
 import pytz
-from pathlib import Path
 from statistics import mean
 import dataframe_image as dfi
 

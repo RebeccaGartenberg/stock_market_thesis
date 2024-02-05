@@ -1,6 +1,4 @@
-import pdb
 import pandas as pd
-import matplotlib.pyplot as plt
 import pytz
 
 def format_trade_signals(data, baseline=False):

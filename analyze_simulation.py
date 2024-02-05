@@ -1,10 +1,7 @@
 import yaml
 import pandas as pd
-from generate_training_data_ml import format_training_data
 from datetime import datetime
 import pytz
-from ml_helper_functions import run_ml_models_simulation, normalize_data
-from analyze_trades import determine_profits, get_total_profits_per_hour
 
 with open('./input.yaml', 'rb') as f:
     params = yaml.safe_load(f.read())

@@ -1,12 +1,9 @@
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockQuotesRequest
 from datetime import datetime, timedelta
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 import pytz
-import pdb
 import math
-from dates import *
+from dates import get_n_random_dates
 from local_maxima_and_minima import plot_local_maxima_and_minima
 from generate_smoothed_data import plot_smoothed_data
 from plot_original_data import plot_original_data_day

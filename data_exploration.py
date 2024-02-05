@@ -1,23 +1,11 @@
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
-from datetime import datetime, timedelta, date, time
-import datetime
-from datetime import timezone
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
+from datetime import datetime
 import pytz
-import math
-from dates import *
-from local_maxima_and_minima import plot_local_maxima_and_minima
-from generate_smoothed_data import plot_smoothed_data
 from plot_original_data import plot_original_data_year
-from plot_hourly_data import plot_hourly_data, plot_hourly_mean_and_spread # plot_hourly_price_change, plot_hourly_percent_change
+from plot_hourly_data import plot_hourly_data, plot_hourly_mean_and_spread
 import yaml
-import numpy as np
-import ast
-from statistics import variance
-from stock_split_info import adjust_for_stock_split
 
 with open('./input.yaml', 'rb') as f:
     params = yaml.safe_load(f.read())

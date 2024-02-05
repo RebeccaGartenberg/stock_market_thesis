@@ -1,9 +1,7 @@
-from scipy.optimize import minimize
 from itertools import product
 from datetime import datetime
 import pandas as pd
 import yaml
-import pdb
 from determine_trade_times import get_sma_crossover_signal, get_hourly_sma_crossover_signal, get_slow_stochastic_oscillator, get_hourly_slow_stochastic_oscillator,\
 get_mean_reversion_signal, get_hourly_mean_reversion_signal, get_rsi_signal, get_hourly_rsi_signal
 from analyze_trades import determine_profits, format_trade_signals

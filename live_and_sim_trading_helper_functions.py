@@ -1,5 +1,5 @@
 from uuid import UUID
-from datetime import datetime, timezone, date, timedelta
+from datetime import datetime, date, timedelta
 from alpaca.trading.enums import OrderSide, TimeInForce, AssetClass, AssetExchange, PositionSide, OrderClass, \
 OrderType, OrderStatus, AssetStatus, AccountStatus, ActivityType, TradeActivityType, NonTradeActivityStatus, \
 CorporateActionType, CorporateActionSubType, CorporateActionDateType, DTBPCheck, PDTCheck, TradeConfirmationEmail
@@ -61,7 +61,6 @@ def write_trade_info_to_file(trade_info, file_name):
 def get_stock_info(stock_symbol, start_date, end_date, data_client):
     data_bars_params = StockBarsRequest(
                     symbol_or_symbols=stock_symbol,
-                    # timeframe=TimeFrame(1, TimeFrameUnit.Minute),
                     timeframe=TimeFrame.Minute,
                     start=start_date,
                     end=end_date
@@ -83,7 +82,6 @@ def get_stock_info(stock_symbol, start_date, end_date, data_client):
 def get_stock_quotes(stock_symbol, start_date, end_date, data_client, est):
     data_bars_params = StockQuotesRequest(
                     symbol_or_symbols=stock_symbol,
-                    # timeframe=TimeFrame(1, TimeFrameUnit.Minute),
                     start=start_date,
                     end=end_date
                     )
