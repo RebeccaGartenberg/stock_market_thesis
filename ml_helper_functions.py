@@ -10,7 +10,6 @@ from sklearn.preprocessing import MinMaxScaler
 import time
 import numpy as np
 import pandas as pd
-import pdb
 import matplotlib.pyplot as plt
 import dataframe_image as dfi
 from statistics import mean
@@ -66,8 +65,6 @@ def grid_search(X_train, Y_train, labels, label_encoder):
         'n_estimators': [50, 100, 200],
         'max_depth': [3, 4, 5],
         'learning_rate': [0.01, 0.1, 0.2]
-        # 'subsample': [0.8, 0.9, 1.0],
-        # 'colsample_bytree': [0.8, 0.9, 1.0]
     }
     svm_param_grid = {
         'C': [0.1, 1, 10],
@@ -111,6 +108,7 @@ def grid_search(X_train, Y_train, labels, label_encoder):
         svm_grid_search = GridSearchCV(estimator=svm_model, param_grid=svm_param_grid, cv=3, scoring='accuracy')
         svm_grid_search.fit(X_train, Y_train_label)
         svm_models.append(svm_grid_search.best_estimator_)
+
     end = time.time()
     print(f'Total ML training time: {(end-start) / 60} minutes')
 
@@ -224,13 +222,14 @@ def create_and_save_feature_importance_plots(X_test, Y_test, labels, models, tab
 
         importance_df = importance_df.drop(state_cols.tolist()+exchange_cols.tolist()+country_cols.tolist()+sector_cols.tolist()+industry_cols.tolist(), axis=1)
         importance_df = importance_df.T.reset_index()
-
-        plt.barh(importance_df['Feature'], importance_df['Importance'])
-        plt.yticks(importance_df['Feature'], rotation=45, fontsize=5)
+        importance_df = importance_df.sort_values(by='Importance', ascending=False)
+        importance_df_subset = importance_df[0:10].reset_index()
+        plt.barh(importance_df_subset['Feature'], importance_df_subset['Importance'])
+        plt.yticks(importance_df_subset['Feature'], rotation=45, fontsize=5)
         plt.title(f'Feature Importance for label: {labels[i]} ({model_name})')
         plt.xlabel('Importances')
         plt.ylabel('Features')
-        plt.savefig(f'{tables_dir_name}/feature_importance_{labels[i]}_{model_name}_{file_name}.svg', bbox_inches='tight')
+        plt.savefig(f'{tables_dir_name}/feature_importance_{labels[i]}_{model_name}_{file_name}_top_10.svg', bbox_inches='tight')
         plt.close()
 
 def run_ml_models(training_data, testing_data, labels, tables_dir_name, file_name=''):
@@ -271,6 +270,7 @@ def run_ml_models(training_data, testing_data, labels, tables_dir_name, file_nam
     create_and_save_feature_importance_plots(X, Y_test, labels, regression_models, tables_dir_name, 'regression', file_name)
     create_and_save_feature_importance_plots(X, Y_test, labels, random_forest_models, tables_dir_name, 'random_forest', file_name)
     create_and_save_feature_importance_plots(X, Y_test, labels, xgb_models, tables_dir_name, 'xgb', file_name)
+    create_and_save_feature_importance_plots(X, Y_test, labels, svm_models, tables_dir_name, 'svm', file_name)
 
 def grid_search_simulation(X_train, Y_train, labels, label_encoder, model_name, dir_name, file_name):
     models = []

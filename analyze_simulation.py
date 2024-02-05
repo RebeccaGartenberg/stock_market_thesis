@@ -1,10 +1,10 @@
 import yaml
-import pdb
 import pandas as pd
 from generate_training_data_ml import format_training_data
 from datetime import datetime
 import pytz
 from ml_helper_functions import run_ml_models_simulation, normalize_data
+from analyze_trades import determine_profits, get_total_profits_per_hour
 
 with open('./input.yaml', 'rb') as f:
     params = yaml.safe_load(f.read())
@@ -47,95 +47,12 @@ company_data = pd.read_csv(company_data_file)
 annual_reports = pd.read_csv(annual_report_file)
 quarterly_reports = pd.read_csv(quarterly_report_file)
 
-# profitable strategies per stock
-# profitable_strategies_t1 = pd.read_csv(file_name_t1)
-# profitable_strategies_t2 = pd.read_csv(file_name_t2)
-# profitable_strategies_t3 = pd.read_csv(file_name_t3)
-#
-# extra_t1 = list(set(profitable_strategies_t1['symbol'].tolist()) - set(profitable_strategies_t3['symbol'].tolist())) + list(set(profitable_strategies_t1['symbol'].tolist()) - set(profitable_strategies_t2['symbol'].tolist()))
-# extra_t2 = list(set(profitable_strategies_t2['symbol'].tolist()) - set(profitable_strategies_t3['symbol'].tolist())) + list(set(profitable_strategies_t2['symbol'].tolist()) - set(profitable_strategies_t1['symbol'].tolist()))
-# extra_t3 = list(set(profitable_strategies_t3['symbol'].tolist()) - set(profitable_strategies_t1['symbol'].tolist())) + list(set(profitable_strategies_t3['symbol'].tolist()) - set(profitable_strategies_t2['symbol'].tolist()))
-#
-# profitable_strategies_t1 = profitable_strategies_t1[~profitable_strategies_t1['symbol'].isin(extra_t1)]
-# profitable_strategies_t2 = profitable_strategies_t2[~profitable_strategies_t2['symbol'].isin(extra_t2)]
-# profitable_strategies_t3 = profitable_strategies_t3[~profitable_strategies_t3['symbol'].isin(extra_t3)]
-#
-# # profitable strategies per hour per stock
-# profitable_strategies_hourly_t1 = pd.read_csv(file_name_hourly_t1)
-# profitable_strategies_hourly_t2 = pd.read_csv(file_name_hourly_t2)
-# profitable_strategies_hourly_t3 = pd.read_csv(file_name_hourly_t3)
-#
-# extra_t1_hourly = list(set(profitable_strategies_hourly_t1['symbol'].tolist()) - set(profitable_strategies_hourly_t3['symbol'].tolist())) + list(set(profitable_strategies_hourly_t1['symbol'].tolist()) - set(profitable_strategies_hourly_t2['symbol'].tolist()))
-# extra_t2_hourly = list(set(profitable_strategies_hourly_t2['symbol'].tolist()) - set(profitable_strategies_hourly_t3['symbol'].tolist())) + list(set(profitable_strategies_hourly_t2['symbol'].tolist()) - set(profitable_strategies_hourly_t1['symbol'].tolist()))
-# extra_t3_hourly = list(set(profitable_strategies_hourly_t3['symbol'].tolist()) - set(profitable_strategies_hourly_t1['symbol'].tolist())) + list(set(profitable_strategies_hourly_t3['symbol'].tolist()) - set(profitable_strategies_hourly_t2['symbol'].tolist()))
-#
-# profitable_strategies_hourly_t1 = profitable_strategies_hourly_t1[~profitable_strategies_hourly_t1['symbol'].isin(extra_t1_hourly)]
-# profitable_strategies_hourly_t2 = profitable_strategies_hourly_t2[~profitable_strategies_hourly_t2['symbol'].isin(extra_t2_hourly)]
-# profitable_strategies_hourly_t3 = profitable_strategies_hourly_t3[~profitable_strategies_hourly_t3['symbol'].isin(extra_t3_hourly)]
-#
-# quarterly_reports_df = quarterly_reports[['fiscalDateEnding', 'symbol', 'totalRevenue', 'ebitda', 'ebit']]
-# quarterly_reports_df[['totalRevenue', 'ebitda', 'ebit']] = quarterly_reports_df[['totalRevenue', 'ebitda', 'ebit']].apply(pd.to_numeric, errors='coerce')
-#
-# # select columns to use from company_data and quarterly_reports, combine with profitable strategies
-# training_data_t1 = format_training_data(profitable_strategies_t1, company_data, quarterly_reports_df, t1_start_date, t1_end_date)
-# training_data_t2 = format_training_data(profitable_strategies_t2, company_data, quarterly_reports_df, t2_start_date, t2_end_date)
-# training_data_t3 = format_training_data(profitable_strategies_t3, company_data, quarterly_reports_df, t3_start_date, t3_end_date)
-#
-# training_data_hourly_t1 = format_training_data(profitable_strategies_hourly_t1, company_data, quarterly_reports_df, t1_start_date, t1_end_date)
-# training_data_hourly_t2 = format_training_data(profitable_strategies_hourly_t2, company_data, quarterly_reports_df, t2_start_date, t2_end_date)
-# training_data_hourly_t3 = format_training_data(profitable_strategies_hourly_t3, company_data, quarterly_reports_df, t3_start_date, t3_end_date)
-#
-# training_data_t1.set_index('symbol', inplace=True)
-# training_data_t2.set_index('symbol', inplace=True)
-# training_data_t3.set_index('symbol', inplace=True)
-#
-# training_data_hourly_t1.set_index('symbol', inplace=True)
-# training_data_hourly_t2.set_index('symbol', inplace=True)
-# training_data_hourly_t3.set_index('symbol', inplace=True)
-#
-# training_data = training_data_t2[labels].merge(training_data_t1.drop(labels, axis=1), how='left', right_on='symbol', left_on='symbol')
-# testing_data = training_data_t3[labels].merge(training_data_t2.drop(labels, axis=1), how='left', right_on='symbol', left_on='symbol')
-#
-# training_data_hourly = training_data_hourly_t2[['hour']+labels_hourly].merge(training_data_hourly_t1.drop(labels_hourly, axis=1), how='left', right_on=['symbol','hour'], left_on=['symbol','hour'])
-# testing_data_hourly = training_data_hourly_t3[['hour']+labels_hourly].merge(training_data_hourly_t2.drop(labels_hourly, axis=1), how='left', right_on=['symbol','hour'], left_on=['symbol','hour'])
-#
-# # Normalize and scale features
-# normalized_training_data = normalize_data(training_data, labels)
-# normalized_testing_data = normalize_data(testing_data, labels)
-# normalized_training_data_hourly = normalize_data(training_data_hourly, labels_hourly)
-# normalized_testing_data_hourly = normalize_data(testing_data_hourly, labels_hourly)
-#
 stock_symbols = ['TSLA', 'TM', 'SBUX', 'AMZN', 'MSFT', 'ORCL', 'AMAT', 'TSM', 'MRNA', 'JNJ', 'WMT', 'COST', 'UNH', 'CVS', 'JPM', 'PYPL', 'PEP', 'KO']
-#
-# thresh = 5
-# non_zero_count = (normalized_training_data != 0).sum()
-# filtered_columns = non_zero_count[non_zero_count > thresh].index
-# filtered_normalized_training_data = normalized_training_data[filtered_columns]
-#
-# non_zero_count = (normalized_testing_data != 0).sum()
-# filtered_columns = non_zero_count[non_zero_count > thresh].index
-# filtered_normalized_testing_data = normalized_testing_data[filtered_columns]
-# # filtered_normalized_testing_data = filtered_normalized_testing_data.loc[stock_symbols]
-#
-# thresh = 10
-# non_zero_count = (normalized_training_data_hourly != 0).sum()
-# filtered_columns = non_zero_count[non_zero_count > thresh].index
-# filtered_normalized_training_data_hourly = normalized_training_data_hourly[filtered_columns]
-#
-# non_zero_count = (normalized_testing_data_hourly != 0).sum()
-# filtered_columns = non_zero_count[non_zero_count > thresh].index
-# filtered_normalized_testing_data_hourly = normalized_testing_data_hourly[filtered_columns]
-# # filtered_normalized_testing_data_hourly = filtered_normalized_testing_data_hourly.loc[stock_symbols]
-#
-# run_ml_models_simulation(filtered_normalized_training_data, filtered_normalized_testing_data, labels, live_sim_results_dir, 'svm')
-# run_ml_models_simulation(filtered_normalized_training_data_hourly, filtered_normalized_testing_data_hourly, labels_hourly, live_sim_results_dir, 'regression', 'hourly')
-#
+
 grouped_results = simulation_results.groupby(['symbol', 'strategy']).apply(lambda x: x.iloc[[-1]])
 grouped_results[grouped_results['total_account_value'] > 1000]
 grouped_results['total_account_value'] = round(grouped_results['total_account_value'], 2)
 successful_results = grouped_results[grouped_results['total_account_value'] > 1000]['total_account_value'].reset_index().drop('level_2', axis=1)
-# show which strategies were most successful, which were least successful, which stocks/industries were successful or not
-# show beginning and end price for each stock
 successful_results.to_latex(f'{live_sim_results_dir}/successful_sim_results.tex', header=True, index=False)
 
 simulation_results_ml = pd.read_csv(f'{live_sim_results_dir}/y_pred_svm_.csv')
@@ -146,6 +63,34 @@ simulation_results_ml_hourly.set_index('symbol', inplace=True)
 simulation_results_ml.loc[stock_symbols]
 simulation_results_ml_hourly.loc[stock_symbols]
 
-pdb.set_trace()
+simulation_results['hour'] = pd.to_datetime(simulation_results['timestamp']).apply(lambda x: x.hour)
+grouped_results_2 = simulation_results.groupby(['symbol', 'strategy']).apply(lambda x: x)
 
-# group by timestamp
+symbols = simulation_results.symbol.unique().tolist()
+strategies = simulation_results.strategy.unique().tolist()
+
+hourly_results = pd.DataFrame(columns=['symbol', 'strategy', 'hour', 'gain/loss'])
+hourly_results_buying = pd.DataFrame(columns=['symbol', 'strategy', 'hour', 'gain/loss'])
+
+for symbol in symbols:
+    for strategy in strategies:
+        strategy_symbol_results = simulation_results[(simulation_results['symbol'] == symbol) & (simulation_results['strategy']==strategy)]
+        buy_signal = strategy_symbol_results[strategy_symbol_results['buy/sell']=='buy']
+        sell_signal = strategy_symbol_results[strategy_symbol_results['buy/sell']=='sell']
+
+        avg_gain_loss = strategy_symbol_results.groupby('hour').mean()['gain/loss'].reset_index()[['hour', 'gain/loss']]
+        avg_gain_loss['symbol'] = symbol
+        avg_gain_loss['strategy'] = strategy
+        hourly_results = pd.concat([hourly_results, avg_gain_loss])
+
+        avg_gain_loss_buy = strategy_symbol_results[['hour', 'gain/loss']].set_index('hour').shift(-1).groupby('hour').mean().reset_index()[['hour', 'gain/loss']]
+        avg_gain_loss_buy['symbol'] = symbol
+        avg_gain_loss_buy['strategy'] = strategy
+        hourly_results_buying = pd.concat([hourly_results_buying, avg_gain_loss_buy])
+
+hourly_results.to_latex(f'{live_sim_results_dir}/hourly_results.tex', header=True, index=False)
+hourly_results[hourly_results['gain/loss'] > 0].to_latex(f'{live_sim_results_dir}/successful_hourly_results.tex', header=True, index=False)
+hourly_results.groupby('hour').mean()
+
+round(hourly_results_buying, 2).to_latex(f'{live_sim_results_dir}/hourly_buying_results.tex', header=True, index=False)
+round(hourly_results_buying[hourly_results_buying['gain/loss'] > 0], 2).to_latex(f'{live_sim_results_dir}/successful_hourly_buying_results.tex', header=True, index=False)

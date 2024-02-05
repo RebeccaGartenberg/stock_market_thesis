@@ -3,15 +3,18 @@ from dates import month_number_to_name
 import pytz
 import matplotlib.pyplot as plt
 import numpy as np
-import pdb
 import matplotlib.dates as mdates
 import pandas as pd
 
 def plot_hourly_data(stock_symbol, year, time_axis, price_axis: list, dir_name, file_type='png', file_name=None, plot_type='Mean', error_bars=None, y_lim=[]):
+    if plot_type == 'Percent Change':
+        y_axis_name = 'Percent Change (%)'
+    else:
+        y_axis_name = 'Close Price (USD)'
     plot(x_axis=[time_axis],
         y_axis=[price_axis],
         x_axis_name='Timestamp (EST)',
-        y_axis_name='Ask Price (USD)',
+        y_axis_name=y_axis_name,
         error_bars=error_bars,
         y_lim=y_lim,
         colors=[[0, 0.4470, 0.7410]],
@@ -24,7 +27,7 @@ def plot_hourly_data(stock_symbol, year, time_axis, price_axis: list, dir_name, 
 
 def plot_hourly_mean_and_spread(stock_symbol, year, time_axis, price_axis: list, dir_name, show_plot: bool = False, file_type='png', y_lim=[]):
     x_axis_name='Timestamp (EST)'
-    y_axis_name='Ask Price (USD)'
+    y_axis_name='Close Price (USD)'
     title=f"Stock: {stock_symbol} | {year} | Mean and Spread"
     file_name=f"{dir_name}/{stock_symbol}_{year}_boxplot.{file_type}"
 

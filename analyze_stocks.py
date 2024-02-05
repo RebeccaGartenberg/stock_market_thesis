@@ -1,12 +1,11 @@
 import yaml
-import pdb
 import pandas as pd
 import matplotlib.pyplot as plt
 
 with open('./input.yaml', 'rb') as f:
     params = yaml.safe_load(f.read())
 
-# use for showing diversity in stocks
+# Show diversity in stocks
 training_data_dir = params.get("training_data_directory")
 company_data_file = f'{training_data_dir}/company_data.csv'
 company_data = pd.read_csv(company_data_file)
@@ -25,7 +24,7 @@ positions = range(len(size_grouping))
 
 # Industry
 plt.bar(industry_grouping.index, industry_grouping)
-plt.xticks(industry_grouping.index, rotation=45, fontsize=3)
+plt.xticks(industry_grouping.index, rotation=45, fontsize=2.2, ha='right')
 plt.title('Stocks by Industry')
 plt.xlabel('Industry Name')
 plt.ylabel('Number of stocks per industry')
@@ -34,7 +33,7 @@ plt.close()
 
 # Sector
 plt.bar(sector_grouping.index, sector_grouping)
-plt.xticks(sector_grouping.index, rotation=45, fontsize=10)
+plt.xticks(sector_grouping.index, rotation=45, fontsize=10, ha='right')
 plt.title('Stocks by Sector')
 plt.xlabel('Sector Name')
 plt.ylabel('Number of stocks per sector')
@@ -43,7 +42,7 @@ plt.close()
 
 # Number of Employees
 plt.bar(positions, size_grouping)
-plt.xticks(positions, labels=labels, rotation=45, fontsize=5)
+plt.xticks(positions, labels=labels, rotation=45, fontsize=5, ha='right')
 plt.title('Stocks by Size')
 plt.xlabel('Number of Employees')
 plt.ylabel('Number of stocks per size group')
@@ -52,7 +51,7 @@ plt.close()
 
 # Location
 plt.bar(state_grouping.index, state_grouping)
-plt.xticks(state_grouping.index, rotation=45, fontsize=5)
+plt.xticks(state_grouping.index, rotation=45, fontsize=5, ha='right')
 plt.title('Stocks by State')
 plt.xlabel('State Name')
 plt.ylabel('Number of stocks per state')
@@ -60,7 +59,7 @@ plt.savefig(f'{training_data_dir}/stocks_by_state.svg', bbox_inches='tight')
 plt.close()
 
 plt.bar(country_grouping.index, country_grouping)
-plt.xticks(country_grouping.index, rotation=45, fontsize=5)
+plt.xticks(country_grouping.index, rotation=45, fontsize=5, ha='right')
 plt.title('Stocks by Country')
 plt.xlabel('Country Name')
 plt.ylabel('Number of stocks per country')

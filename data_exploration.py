@@ -7,12 +7,11 @@ from datetime import timezone
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import pytz
-import pdb
 import math
 from dates import *
 from local_maxima_and_minima import plot_local_maxima_and_minima
 from generate_smoothed_data import plot_smoothed_data
-from plot_original_data import plot_original_data_day, plot_original_data_year
+from plot_original_data import plot_original_data_year
 from plot_hourly_data import plot_hourly_data, plot_hourly_mean_and_spread # plot_hourly_price_change, plot_hourly_percent_change
 import yaml
 import numpy as np
@@ -67,36 +66,24 @@ for stock_symbol in stock_symbol_list:
 
     hourly_means = df.groupby(df.tz_convert(est).index.hour).mean()
 
-    # df = adjust_for_stock_split(df, stock_symbol, year)
-
     value_list = [[],[],[],[],[],[],[],[]]
     for count, value in enumerate(df.groupby(df.tz_convert(est).index.hour)):
         value_list[count] = value[1]['close']
 
-    df['pct_change'] = (df['close'].diff() / df['close'].shift(1)) * 100
-
-    # baseline_buy_signal = df.groupby(df.tz_convert(est).index.date, df.tz_convert(est).index.hour).apply(lambda x: x.iloc[[0]]) # first datapoint from each day
-    # baseline_sell_signal = data.groupby(data.index.date).apply(lambda x: x.iloc[[-1]]) # last datapoint from each day
-    last = df.groupby([df.tz_convert(est).index.date, df.tz_convert(est).index.hour]).last()['close']
-    first =  df.groupby([df.tz_convert(est).index.date, df.tz_convert(est).index.hour]).first()['close']
-
-    # Group by hour and calculate the average percentage change
-    hourly_average_change = df.groupby(df.tz_convert(est).index.hour)['pct_change'].mean() # looking at the change every minute per hour and averaging that
-    # (100*((last-first)/last)).unstack().mean() # Looking at the first and last value from each hour and averaging the change over hour
-
-    hourly_std_dev = df.groupby(df.tz_convert(est).index.hour).std()
+    # average change in price from beginning to end of hour
+    hour_begin_prices = df.groupby([df.tz_convert(est).index.date, df.tz_convert(est).index.hour])['close'].apply(lambda x: x.iloc[0])
+    hour_end_prices = df.groupby([df.tz_convert(est).index.date, df.tz_convert(est).index.hour])['close'].apply(lambda x: x.iloc[-1])
+    hourly_percent_change = ((hour_end_prices - hour_begin_prices)/hour_begin_prices).reset_index()
+    hourly_average_change = hourly_percent_change.groupby(hourly_percent_change['timestamp']).mean()
 
     # Plot raw data
     plot_original_data_year(stock_symbol, year, df.index, df['close'], plot_directory, 'svg')
 
     # Plot hourly mean data with standard deviation
-    # plot_hourly_data(stock_symbol, year, time_axis[0:len(hourly_means)], hourly_means['close'].tolist(), plot_directory, 'png', error_bars=hourly_std_dev['close'].tolist(), y_lim=[df['close'].min(), df['close'].max()])
-    # plot_hourly_data(stock_symbol, year, time_axis[0:len(hourly_means)], hourly_means['close'], plot_directory, 'png', error_bars=hourly_std_dev['close'], y_lim=[df['close'].min(), df['close'].max()])
     plot_hourly_data(stock_symbol, year, time_axis[0:len(hourly_means)], hourly_means['close'], plot_directory, 'svg', y_lim=[hourly_means['close'].min()-0.5, hourly_means['close'].max()+0.5])
-    # hourly_means.index.tolist()
 
     # Plot hourly mean with spread
     plot_hourly_mean_and_spread(stock_symbol, year, value_list.index, value_list, plot_directory, file_type='svg', y_lim=[df['close'].min(), df['close'].max()])
 
     # Plot hourly percent change
-    plot_hourly_data(stock_symbol, year, time_axis[0:len(hourly_means)], hourly_average_change, plot_directory, 'svg', f'{stock_symbol}_{year}_pct_change', 'Percent Change', y_lim=[hourly_average_change.min()-0.005, hourly_average_change.max()+0.005])
+    plot_hourly_data(stock_symbol, year, time_axis[0:len(hourly_means)], hourly_average_change, plot_directory, 'svg', f'{stock_symbol}_{year}_pct_change', 'Percent Change', y_lim=[hourly_average_change.min()['close']-0.0005, hourly_average_change.max()['close']+0.0005])

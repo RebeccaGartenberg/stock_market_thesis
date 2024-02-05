@@ -3,7 +3,7 @@ from aggregate_data import merge_data, offset_data_by_business_days, get_aggrega
 import pdb
 from datetime import timedelta
 import pandas as pd
-from plot_original_data import plot_original_data_trade_signals, plot_original_data_trade_signals_subplots
+from plot_original_data import plot_original_data_trade_signals, plot_original_data_trade_signals_subplots, plot_original_data_year_with_trade_markers
 
 def sma_old(data, grouping, n_days):
     # Aggregate Data
@@ -32,19 +32,6 @@ def hourly_sma(data, n_days):
     hourly_mean_data = get_buy_and_sell_signals(hourly_mean_data, 'close', 'close_hourly_mean')
 
     return hourly_mean_data
-
-# def hourly_sma_2(data, n_days):
-#     # Aggregate Data
-#     hourly_mean = get_aggregated_mean_hourly(data, n_days)
-#     # Offset data by 1 business day to compare each value to previous day's mean
-#     hourly_mean['timestamp'] = hourly_mean.index
-#     hourly_mean.timestamp = offset_data_by_business_days(hourly_mean.timestamp, 1)
-#     # Merge n-day SMA means with dataframe
-#     hourly_mean_data = merge_data(data, hourly_mean, 'close_hourly_mean', [hourly_mean.index.date, hourly_mean.index.hour], [data.index.date, data.index.hour])
-#     # Get Buy and Sell signals for n-day SMA
-#     hourly_mean_data = get_buy_and_sell_signals(hourly_mean_data, 'close', 'close_hourly_mean')
-#
-#     return hourly_mean_data
 
 def get_sma_crossover_signal_old(data, short_time_period, long_time_period):
     sma_short = sma_old(data, data.timestamp.dt.date, short_time_period)
@@ -114,8 +101,6 @@ def get_hourly_sma_crossover_signal(data, start_date, short_time_period, long_ti
     hourly_sma_signal[f'sma_{long_time_period}_day'] = hourly_sma_long
     # filter out first x days to account for delay
     hourly_sma_signal = hourly_sma_signal[hourly_sma_signal['timestamp'].dt.date >= start_date.date()]
-    # hourly_sma_signal = hourly_sma_signal[hourly_sma_signal['timestamp'] > hourly_sma_signal['timestamp'][0]+timedelta(long_time_period)]
-    # hourly_crossover_signal = get_buy_and_sell_signals(hourly_sma_signal, f'sma_{long_time_period}_day', f'sma_{short_time_period}_day')
     hourly_crossover_signal = get_buy_and_sell_signals(hourly_sma_signal, f'sma_{short_time_period}_day', f'sma_{long_time_period}_day')
 
     if dir_name is not None:
@@ -178,10 +163,10 @@ def get_slow_stochastic_oscillator(data, start_date, k, d, low_thresh, high_thre
         plot_original_data_trade_signals_subplots(data['symbol'][0],
                                         data['timestamp'][0].year,
                                         data['timestamp'],
-                                        [data['close'], stoch_osc['%K'], stoch_osc['%D']],
+                                        [data['close'], stoch_osc['%K'], stoch_osc['low_thresh'], stoch_osc['high_thresh'], stoch_osc['%D']],
                                         'slow_stoch',
                                         'Slow Stochastic Oscillator',
-                                        ['Original data', '%K line', '%D line'],
+                                        ['Original data', '%K line', 'low threshold', 'high threshold', '%D line'],
                                         dir_name,
                                         file_type
                                         )
@@ -280,10 +265,10 @@ def get_hourly_slow_stochastic_oscillator(data, start_date, k, d, low_thresh, hi
         plot_original_data_trade_signals_subplots(data['symbol'][0],
                                         data['timestamp'][0].year,
                                         data['timestamp'],
-                                        [data['close'], hourly_osc['%K'], hourly_osc['%D']],
+                                        [data['close'], hourly_osc['%K'], hourly_osc['low_thresh'], hourly_osc['high_thresh'], hourly_osc['%D']],
                                         'hourly_slow_stoch',
                                         'Hourly Slow Stoc. Osc.',
-                                        ['Original data', 'Hourly %K line', 'Hourly %D line'],
+                                        ['Original data', 'Hourly %K line', 'low threshold', 'high threshold', 'Hourly %D line'],
                                         dir_name,
                                         file_type)
 
@@ -600,10 +585,19 @@ def get_buy_and_sell_signals(data, col1, col2, col3='close'):
     return data
 
 # https://stackoverflow.com/questions/52909610/pandas-getting-first-and-last-value-from-each-day-in-a-datetime-dataframe
-def get_baseline_signals(data):
+def get_baseline_signals(data, dir_name=None, file_type=None):
     baseline_buy_signal = data.groupby(data.index.date).apply(lambda x: x.iloc[[0]]) # first datapoint from each day
     baseline_sell_signal = data.groupby(data.index.date).apply(lambda x: x.iloc[[-1]]) # last datapoint from each day
     baseline_buy_signal.index = baseline_buy_signal.index.droplevel(0)
     baseline_sell_signal.index = baseline_sell_signal.index.droplevel(0)
+
+    if dir_name is not None:
+        plot_original_data_year_with_trade_markers(data['symbol'][0],
+                                        data['timestamp'][0].year,
+                                        data['timestamp'],
+                                        [data['close'], baseline_buy_signal['close'], baseline_sell_signal['close']],
+                                        ['Original data', 'buy', 'sell'],
+                                        dir_name,
+                                        file_type)
 
     return baseline_buy_signal, baseline_sell_signal

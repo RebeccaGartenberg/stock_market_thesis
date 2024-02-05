@@ -6,7 +6,6 @@ from alpaca.trading.client import TradingClient
 from alpaca.data.requests import StockLatestQuoteRequest, StockQuotesRequest
 from alpaca.data.historical import StockHistoricalDataClient
 import yaml
-import pdb
 import time
 from datetime import datetime, timezone, date, timedelta
 import csv
@@ -15,7 +14,7 @@ import pytz
 from determine_trade_times import get_buy_and_sell_signals, get_baseline_signals, get_sma_crossover_signal, get_hourly_sma_crossover_signal, \
 get_slow_stochastic_oscillator, get_hourly_slow_stochastic_oscillator, get_mean_reversion_signal, get_hourly_mean_reversion_signal, \
 get_rsi_signal, get_hourly_rsi_signal
-from live_trading_helper_functions import UUIDEncoder, write_trade_data_to_file, write_account_info_to_file, get_stock_info, get_stock_quotes, write_trade_info_to_file, simulate_execute_trades
+from live_and_sim_trading_helper_functions import UUIDEncoder, write_trade_data_to_file, write_account_info_to_file, get_stock_info, get_stock_quotes, write_trade_info_to_file, simulate_execute_trades
 import pandas as pd
 from generate_training_data_ml import generate_and_save_training_data, format_training_data
 from sklearn.linear_model import LogisticRegression

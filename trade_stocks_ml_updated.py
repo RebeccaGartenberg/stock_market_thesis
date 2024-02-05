@@ -3,7 +3,6 @@ import yaml
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-import pdb
 import yfinance as yf
 from datetime import datetime, timezone, date, timedelta
 from generate_training_data_ml import get_stock_symbols, generate_and_save_training_data, format_training_data, get_company_data, save_company_data, get_income_statement_data, generate_training_data

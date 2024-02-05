@@ -2,7 +2,6 @@ from alpaca.data.requests import StockLatestQuoteRequest, StockQuotesRequest, St
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 import yaml
-import pdb
 from datetime import datetime, timezone, date, timedelta
 import pytz
 import matplotlib.pyplot as plt
@@ -66,7 +65,7 @@ for stock_symbol in stock_symbols:
     df = adjust_for_stock_split(df, stock_symbol, year)
 
     # Get Baseline Buy and Sell signals- purely time based
-    baseline_buy_signal, baseline_sell_signal = get_baseline_signals(df)
+    baseline_buy_signal, baseline_sell_signal = get_baseline_signals(df, tables_dir_name, 'svg')
 
     # Get SMA crossover signal of 10 and 20 day moving averages
     # crossover_signal = get_sma_crossover_signal_old(df, 20, 50)
